@@ -24,33 +24,68 @@ The classifier only compares against the signs for the current mode. This avoids
 | **Spelling** | Patient spells a name, allergy or medication | A–Z except J and Z (on-screen keyboard for those) |
 | **Free** | Patient starts saying something themselves | The 8 medical signs below |
 
+### No movement
+
+Every sign is recorded and recognized as a **held handshape with no movement**. Many of these signs normally move in ASL (YES nods, HELP lifts); here you make the final shape and hold it still for about half a second. Palm directions below are as seen by the medic, facing the signer.
+
 ### Yes/No mode
 
-| Sign | Description |
+| Sign | Hold this |
 |---|---|
-| YES | Fist (S hand), nodding like a head |
-| NO | Index and middle fingers close onto the thumb |
+| YES | Fist with the thumb across the front of the fingers (S hand), bent forward at the wrist, palm facing down |
+| NO | Index and middle fingers straight and together, pressed down onto the thumb tip (like a closed beak) |
 
 ### Number mode
 
-1–10. Numbers 6–9 are subtle (the thumb touches a different finger for each), so test them early. The on-screen pain scale is the backup.
+| Sign | Hold this |
+|---|---|
+| 1 | Index finger up, palm facing you (the signer) |
+| 2 | Index and middle fingers up, spread, palm facing you |
+| 3 | Thumb, index and middle fingers out, palm facing you |
+| 4 | Four fingers up and spread, thumb folded into the palm, palm facing you |
+| 5 | All five fingers spread, palm facing you |
+| 6 | Thumb touches the pinky tip; index, middle and ring up. Palm facing out |
+| 7 | Thumb touches the ring finger tip; index, middle and pinky up. Palm facing out |
+| 8 | Thumb touches the middle finger tip; index, ring and pinky up. Palm facing out |
+| 9 | Thumb touches the index tip; middle, ring and pinky up. Palm facing out |
+| 10 | Fist with the thumb pointing straight up (thumbs up), held still |
+
+6–9 differ only by which finger the thumb touches, so test them early. The on-screen pain scale is the backup.
 
 ### Spelling mode
 
-A–Z except J and Z, which need motion and are typed on an on-screen keyboard.
+J and Z need motion, so they're typed on the on-screen keyboard. Palm faces out unless noted.
+
+| Letter | Hold this | Letter | Hold this |
+|---|---|---|---|
+| A | Fist, thumb resting up against the side of the index | M | Index, middle and ring fingers folded over the thumb |
+| B | Four fingers straight up together, thumb folded across the palm | N | Index and middle fingers folded over the thumb |
+| C | Hand curved into a C, seen from the side | O | All fingertips touching the thumb tip, making an O |
+| D | Index up; other fingertips touch the thumb, making a circle | P | Like K, but pointing down |
+| E | Fingertips curled down onto the thumb, which is tucked across the palm | Q | Like G, but pointing down |
+| F | Thumb and index tips touch; other three fingers up and spread | R | Index and middle fingers crossed, pointing up |
+| G | Index and thumb pointing sideways, parallel; other fingers closed | S | Fist, thumb across the front of the fingers |
+| H | Index and middle fingers together, pointing sideways | T | Thumb tucked between the index and middle fingers |
+| I | Fist with the pinky up | U | Index and middle fingers up, together |
+| K | Index up, middle angled forward, thumb between them | V | Index and middle fingers up, spread |
+| L | Index up and thumb out, making an L | W | Index, middle and ring fingers up and spread; thumb holds the pinky |
+| | | X | Index finger bent into a hook; other fingers closed |
+| | | Y | Thumb and pinky out, other fingers closed |
+
+Letters that look alike as still shapes: A/S/T/M/N/E (fist family), U/V/R, G/H, K/P, G/Q. Watch these in the evaluation.
 
 ### Free mode: medical signs
 
-| # | Sign | Description |
+| # | Sign | Hold this |
 |---|---|---|
-| 1 | PAIN | Two index fingers point at each other and twist (body map gives the location) |
-| 2 | HELP | Thumbs-up fist resting on the other flat palm, lifting |
-| 3 | WATER | W hand taps the chin |
-| 4 | FOOD / EAT | Flat O hand taps the mouth |
-| 5 | BATHROOM | T hand shakes side to side |
-| 6 | COLD | Both fists shake in front of the chest (shivering) |
-| 7 | STOP | Edge of a flat hand chops down onto the other palm |
-| 8 | PHONE / CALL | Y hand held at the side of the face |
+| 1 | PAIN | Both index fingers pointing at each other, tips almost touching, in front of the chest (body map gives the location) |
+| 2 | HELP | Thumbs-up fist resting on the other hand's flat, upturned palm |
+| 3 | WATER | W hand with the index finger touching the chin |
+| 4 | FOOD / EAT | Flat O (fingers straight, all fingertips touching the thumb) touching the lips |
+| 5 | BATHROOM | T hand held up in front of the shoulder, palm out |
+| 6 | COLD | Both fists (S hands) in front of the chest, elbows tucked in |
+| 7 | STOP | Other hand flat, palm up; the edge (pinky side) of the flat dominant hand resting across it |
+| 8 | PHONE / CALL | Y hand at the side of the face, thumb at the ear, pinky near the mouth |
 
 Every free-mode sign has a different handshape, so recognition doesn't need face tracking for location.
 
