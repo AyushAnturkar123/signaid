@@ -105,6 +105,7 @@ Every free-mode sign has a different handshape, so recognition doesn't need face
 - Watch each sign on [Lifeprint](https://www.lifeprint.com) or [Handspeak](https://www.handspeak.com), pick one version, and everyone copies it exactly.
 - Sign with your dominant hand. Left-handed signers tell the vision person so their samples can be mirrored.
 - Record YES, NO and 1–10 first.
+- **Two-hand signs where one hand rests on the other (HELP, STOP):** hold both hands apart in view until MediaPipe draws dots on both, then bring them together. If a hand is hidden when tracking starts, it never gets found. Do this during the countdown, so recording starts with the hands already in place. Same rule when signing live.
 - Final samples are recorded on the demo laptop, in demo-like lighting.
 
 ### Checking that signs register
