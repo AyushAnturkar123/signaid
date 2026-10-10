@@ -37,8 +37,12 @@ def test_unknown_pose_is_rejected(clf):
 
 
 def test_only_compares_within_mode(clf):
-    # YES/NO samples exist, but none for "free" mode
-    assert clf.predict("free", [make_hand(1)])[0] is None
+    # YES/NO samples exist, but none for "number" mode
+    assert clf.predict("number", [make_hand(1)])[0] is None
+
+
+def test_yes_and_no_also_work_in_free_mode(clf):
+    assert clf.predict("free", [make_hand(1)])[0] == "YES"
 
 
 def test_no_hands_predicts_nothing(clf):

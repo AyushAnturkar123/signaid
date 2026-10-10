@@ -36,7 +36,14 @@ export function setupRecorder(modes, modeNames, getHands) {
   const recordBtn = $("rec-btn");
   const status = $("rec-status");
 
-  for (const [mode, labels] of Object.entries(modes)) {
+  // Each sign is listed once, under the first mode it appears in (YES/NO are also in Free).
+  const listed = new Set();
+  const uniqueModes = Object.entries(modes).map(([mode, labels]) => {
+    const fresh = labels.filter((label) => !listed.has(label));
+    fresh.forEach((label) => listed.add(label));
+    return [mode, fresh];
+  });
+  for (const [mode, labels] of uniqueModes) {
     const group = document.createElement("optgroup");
     group.label = modeNames[mode] ?? mode;
     for (const label of labels) group.append(new Option(label, label));
@@ -57,7 +64,7 @@ export function setupRecorder(modes, modeNames, getHands) {
     const counts = await api.counts();
     const box = $("rec-counts");
     box.replaceChildren();
-    for (const [mode, labels] of Object.entries(modes)) {
+    for (const [mode, labels] of uniqueModes) {
       const heading = document.createElement("h3");
       heading.textContent = modeNames[mode] ?? mode;
       const chips = document.createElement("div");

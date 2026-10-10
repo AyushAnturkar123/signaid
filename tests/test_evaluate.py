@@ -66,7 +66,7 @@ def test_single_signer_splits_earlier_and_later_samples():
 
 
 def test_mode_without_samples():
-    assert evaluate.evaluate_mode(fake_samples({"YES": 1}), "free") == ([], None)
+    assert evaluate.evaluate_mode(fake_samples({"YES": 1}), "number") == ([], None)
 
 
 def test_suggested_cutoff_accepts_nearly_all_correct_signs():

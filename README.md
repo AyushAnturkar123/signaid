@@ -22,7 +22,7 @@ The classifier only compares against the signs for the current mode. This avoids
 | **Yes/No** | Medic asks a yes/no question | YES, NO |
 | **Number** | Medic asks for a pain score | 1–10 |
 | **Spelling** | Patient spells a name, allergy or medication | A–Z except J and Z (on-screen keyboard for those) |
-| **Free** | Patient starts saying something themselves | The 8 medical signs below |
+| **Free** | Patient starts saying something themselves | YES, NO, and the 8 medical signs below |
 
 ### No movement
 
@@ -86,6 +86,8 @@ Letters that look alike as still shapes: A/S/T/M/N/E (fist family), U/V/R, G/H, 
 | 6 | COLD | Both fists (S hands) in front of the chest, elbows tucked in |
 | 7 | STOP | Other hand flat, palm up; the edge (pinky side) of the flat dominant hand resting across it |
 | 8 | PHONE / CALL | Y hand at the side of the face, thumb at the ear, pinky near the mouth |
+
+YES and NO are also in Free mode, so the patient can answer yes or no at any time. They don't clash with the medical signs: COLD is two fists, YES is one.
 
 Every free-mode sign has a different handshape, so recognition doesn't need face tracking for location.
 
