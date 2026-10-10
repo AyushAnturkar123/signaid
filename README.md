@@ -91,6 +91,18 @@ YES and NO are also in Free mode, so the patient can answer yes or no at any tim
 
 Every free-mode sign has a different handshape, so recognition doesn't need face tracking for location.
 
+### Control signs
+
+The patient controls the app with three signs, so they never need to touch it. They work in **every mode**, and must be held for **1 second** (answer signs need 0.5 s), so they don't fire by accident.
+
+| Sign | Hold this | What it does |
+|---|---|---|
+| DONE | Both hands open, fingers spread, palms facing the camera, side by side | Finish and confirm the answer |
+| CLEAR | Both fists side by side, thumbs pointing down | Empty the answer |
+| DELETE | Both index fingers pointing left, side by side | Remove the last sign |
+
+They're two-hand gestures, so they never clash with one-hand letters and numbers. They're listed separately from the modes (`GET /api/controls`), and `scripts/evaluate.py` checks them in every mode, so a clash with any answer sign shows up in the report.
+
 ### Cut from recognition
 
 | Cut | Why | Covered by |
@@ -208,7 +220,7 @@ Server → browser, for every frame (`label` is `null` when no sign matches):
 {"type": "prediction", "label": "YES", "confidence": 0.8, "distance": 1.2}
 ```
 
-Once a sign has been held steadily, the server also sends:
+Once a sign has been held steadily (0.5 s, or 1 s for control signs), the server also sends:
 
 ```json
 {"type": "sign", "label": "YES", "confidence": 0.8}
@@ -219,6 +231,7 @@ Once a sign has been held steadily, the server also sends:
 | Route | Request body | Response |
 |---|---|---|
 | `GET /api/health` | | Gemini status (key set, last call result and time) and which signs still need samples |
+| `GET /api/controls` | | `["DONE", "CLEAR", "DELETE"]`, recognized in every mode |
 | `GET /api/modes` | | `{"yesno": ["YES", "NO"], ...}` |
 | `GET /api/samples` | | sample counts, `{"YES": 40, ...}` |
 | `POST /api/samples` | `{"label", "signer", "left_handed", "frames": [hands, ...]}` | `{"label", "count"}` |

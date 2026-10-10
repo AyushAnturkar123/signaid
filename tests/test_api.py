@@ -29,6 +29,12 @@ def test_serves_the_web_app(client):
     assert "<title>SignAid</title>" in res.text
 
 
+def test_web_files_are_always_rechecked(client):
+    # so a git pull + reload never runs stale JavaScript from the browser cache
+    assert client.get("/recorder.js").headers["cache-control"] == "no-cache"
+    assert client.get("/").headers["cache-control"] == "no-cache"
+
+
 def test_health_reports_gemini_and_samples(client):
     record(client, "YES", 1, n=4)
     record(client, "NO", 2, n=3, signer="Bob")

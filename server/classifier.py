@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from .normalize import features
-from .signs import MODES
+from .signs import MODES, labels_for
 
 K = 5
 # If even the closest sample is further than this, the pose isn't a known sign.
@@ -60,7 +60,8 @@ class SignClassifier:
 
     def _rebuild(self):
         by_mode = {}
-        for mode, labels in MODES.items():
+        for mode in MODES:
+            labels = labels_for(mode)
             rows = [s for s in self.samples if s["label"] in labels]
             if rows:
                 X = np.stack([features(s["hands"], s.get("left_handed", False)) for s in rows])

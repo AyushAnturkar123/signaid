@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 from server import classifier as classifier_module  # noqa: E402
 from server.classifier import SignClassifier  # noqa: E402
-from server.signs import MODES  # noqa: E402
+from server.signs import CONTROLS, MODES, labels_for  # noqa: E402
 
 TARGET_ACCURACY = 0.90
 # The suggested cutoff accepts this share of real signs from new people. It's high
@@ -67,7 +67,7 @@ def _split_by_order(samples):
 
 def evaluate_mode(samples, mode):
     """Return the raw test results for one mode, and which method was used."""
-    labels = MODES[mode]
+    labels = labels_for(mode)
     rows = [s for s in samples if s["label"] in labels]
     signers = sorted({s["signer"] for s in rows})
     if not rows:
@@ -125,7 +125,8 @@ def other_mode_rejection(samples, max_distance):
     """Share of poses from *other* modes that each mode rejects. A rough check that the
     cutoff isn't so loose that any hand pose gets recognized as something."""
     out = {}
-    for mode, labels in MODES.items():
+    for mode in MODES:
+        labels = labels_for(mode)
         own = [s for s in samples if s["label"] in labels]
         others = [s for s in samples if s["label"] not in labels]
         if not own or not others:
@@ -150,7 +151,7 @@ def print_report(samples, modes, max_distance):
 
     cross_signer_results, weak, missing = [], [], []
     for mode in modes:
-        labels = MODES[mode]
+        labels = labels_for(mode)
         results, method = evaluate_mode(samples, mode)
         missing += [l for l in labels if not any(s["label"] == l for s in samples)]
         if not results:
@@ -176,8 +177,10 @@ def print_report(samples, modes, max_distance):
     if len(signers) < 2:
         print("Only one signer: these numbers are optimistic. Record a second person for a real test.")
     print(f"Signs below {pct(TARGET_ACCURACY)}: {', '.join(weak) if weak else 'none'}")
+    missing = list(dict.fromkeys(missing))  # YES/NO and the controls appear in several modes
     if missing:
         print(f"Signs with no samples: {', '.join(missing)}")
+    print(f"Control signs ({', '.join(CONTROLS)}) are checked in every mode.")
 
     suggestion = suggest_max_distance(cross_signer_results)
     if suggestion is None:

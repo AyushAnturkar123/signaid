@@ -1,6 +1,10 @@
 """Only accept a sign once it has been held steadily, so the output doesn't flicker."""
 
+from .signs import CONTROLS
+
 HOLD_SECONDS = 0.5
+# Controls (DONE, CLEAR, DELETE) change the answer, so they need a longer, deliberate hold.
+CONTROL_HOLD_SECONDS = 1.0
 MIN_CONFIDENCE = 0.6
 
 
@@ -30,7 +34,8 @@ class Smoother:
             self.candidate = label
             self.since = now
             return None
-        if label != self.last_accepted and now - self.since >= HOLD_SECONDS:
+        hold = CONTROL_HOLD_SECONDS if label in CONTROLS else HOLD_SECONDS
+        if label != self.last_accepted and now - self.since >= hold:
             self.last_accepted = label
             return label
         return None

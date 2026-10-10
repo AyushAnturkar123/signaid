@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from . import llm
 from .classifier import SignClassifier
-from .signs import ALL_LABELS, MODES
+from .signs import ALL_LABELS, CONTROLS, MODES
 from .smoothing import Smoother
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -103,6 +103,11 @@ def health():
         }
         for mode, labels in MODES.items()
     }
+    controls = {
+        "signs_with_samples": sum(1 for label in CONTROLS if counts.get(label)),
+        "signs_total": len(CONTROLS),
+        "missing": [label for label in CONTROLS if not counts.get(label)],
+    }
     return {
         "status": "ok",
         "gemini": {
@@ -115,8 +120,14 @@ def health():
             "total": sum(counts.values()),
             "signers": classifier.signers(),
             "modes": modes,
+            "controls": controls,
         },
     }
+
+
+@app.get("/api/controls")
+def get_controls():
+    return CONTROLS
 
 
 @app.get("/api/modes")
@@ -165,5 +176,18 @@ def summary(body: SummaryIn):
     return {"text": llm.summary([e.model_dump() for e in body.log])}
 
 
+class NoCacheStaticFiles(StaticFiles):
+    """Make browsers check for a newer file on every load (a cheap 304 if unchanged).
+
+    Without this, after a git pull the browser can keep running old JavaScript
+    from its cache, with no sign that anything is out of date.
+    """
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 # Mounted last so the API routes above take priority.
-app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")
+app.mount("/", NoCacheStaticFiles(directory=ROOT / "web", html=True), name="web")

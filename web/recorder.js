@@ -37,23 +37,38 @@ export function setupRecorder(modes, modeNames, getHands) {
   const status = $("rec-status");
 
   // Each sign is listed once, under the first mode it appears in (YES/NO are also in Free).
+  // groups: [title, labels] for the dropdown and the sample count chips.
   const listed = new Set();
-  const uniqueModes = Object.entries(modes).map(([mode, labels]) => {
+  const groups = Object.entries(modes).map(([mode, labels]) => {
     const fresh = labels.filter((label) => !listed.has(label));
     fresh.forEach((label) => listed.add(label));
-    return [mode, fresh];
+    return [modeNames[mode] ?? mode, fresh];
   });
-  for (const [mode, labels] of uniqueModes) {
+  function addOptions(title, labels) {
     const group = document.createElement("optgroup");
-    group.label = modeNames[mode] ?? mode;
+    group.label = title;
     for (const label of labels) group.append(new Option(label, label));
     select.append(group);
   }
+  for (const [title, labels] of groups) addOptions(title, labels);
 
   const saved = loadSettings();
   signer.value = saved.signer ?? "";
   leftHanded.checked = Boolean(saved.leftHanded);
   if (saved.label) select.value = saved.label;
+
+  // Control signs (DONE, CLEAR, DELETE) work in every mode, so they get their own group.
+  fetch("/api/controls")
+    .then((res) => res.json())
+    .then((controls) => {
+      groups.push(["Controls", controls]);
+      addOptions("Controls", controls);
+      if (saved.label && controls.includes(saved.label)) select.value = saved.label;
+      if (!panel.hidden) refreshCounts();
+    })
+    .catch(() => {
+      // older server without control signs; the rest of the recorder still works
+    });
   const remember = () =>
     saveSettings({ signer: signer.value, leftHanded: leftHanded.checked, label: select.value });
   signer.addEventListener("change", remember);
@@ -64,9 +79,9 @@ export function setupRecorder(modes, modeNames, getHands) {
     const counts = await api.counts();
     const box = $("rec-counts");
     box.replaceChildren();
-    for (const [mode, labels] of uniqueModes) {
+    for (const [title, labels] of groups) {
       const heading = document.createElement("h3");
-      heading.textContent = modeNames[mode] ?? mode;
+      heading.textContent = title;
       const chips = document.createElement("div");
       chips.className = "chips";
       for (const label of labels) {
