@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SignAid</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="start-screen" class="overlay">
+    <h1>SignAid</h1>
+    <p>ASL communication aid for emergencies</p>
+    <button id="start-btn" class="primary big">Start</button>
+    <p class="muted">Uses the camera and microphone. Video stays on this device.</p>
+  </div>
+
+  <header>
+    <h1>SignAid</h1>
+    <span id="mic-status" class="pill">Mic off</span>
+    <nav id="mode-buttons" aria-label="Answer mode"></nav>
+    <button id="recorder-toggle">Record signs</button>
+  </header>
+
+  <main>
+    <section class="card question">
+      <h2>Medic said</h2>
+      <p id="question">Waiting for the medic to speak…</p>
+      <p id="heard" class="muted"></p>
+      <form id="type-form" class="row">
+        <input id="type-input" placeholder="Or type what the medic said" autocomplete="off" aria-label="Type what the medic said">
+        <button>Send</button>
+      </form>
+    </section>
+
+    <section class="camera">
+      <video id="video" playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <div id="live" class="pill">Camera starting…</div>
+    </section>
+
+    <div class="side">
+      <section class="card answer">
+        <h2>You signed</h2>
+        <p id="answer">—</p>
+        <div class="row">
+          <button id="send-btn" class="primary">✓ Send</button>
+          <button id="backspace-btn" aria-label="Remove last sign">⌫</button>
+          <button id="clear-btn">✗ Clear</button>
+        </div>
+      </section>
+
+      <section class="card log">
+        <h2>Conversation</h2>
+        <ol id="log"></ol>
+        <button id="summary-btn">Handoff summary</button>
+      </section>
+    </div>
+  </main>
+
+  <aside id="recorder" class="card" hidden>
+    <h2>Record signs</h2>
+    <label>Your name <input id="rec-signer" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" id="rec-left"> I'm left-handed</label>
+    <label>Sign <select id="rec-label"></select></label>
+    <div class="row">
+      <button id="rec-btn" class="primary">Record 20 samples</button>
+      <button id="rec-delete">Delete mine</button>
+    </div>
+    <p id="rec-status" class="muted">Hold the sign steady in view. Recording starts after a 3-second countdown.</p>
+    <div id="rec-counts"></div>
+  </aside>
+
+  <dialog id="summary-dialog">
+    <h2>Handoff summary</h2>
+    <pre id="summary-text"></pre>
+    <form method="dialog"><button class="primary">Close</button></form>
+  </dialog>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

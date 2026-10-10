@@ -11,3 +11,7 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Local tool config and temp files
+.claude/
+*.tmp

@@ -79,10 +79,23 @@ Every free-mode sign has a different handshape, so recognition doesn't need face
 ## Project structure
 
 ```
-server/   Python backend (FastAPI, classifier, Gemini)
-  data/   recorded sign samples
-web/      Frontend (HTML/CSS/JS)
-  ui/     UI components
+server/                 Python backend (run with uvicorn)
+  main.py               FastAPI app: serves web/, WebSocket, API routes
+  signs.py              sign list, grouped by recognition mode
+  normalize.py          hand landmarks -> fixed-length list of numbers
+  classifier.py         nearest-neighbor classifier (the recorded samples are the model)
+  smoothing.py          accepts a sign only after it's held ~0.5 s
+  llm.py                Gemini prompts, with offline fallbacks
+  data/samples/         recorded samples, one JSON file per signer
+web/                    Frontend (plain HTML/CSS/JS, no build step)
+  index.html, style.css
+  main.js               conversation loop, wires everything together
+  camera.js             webcam + MediaPipe hand tracking
+  socket.js             WebSocket to the classifier
+  speech.js             speech-to-text and text-to-speech
+  recorder.js           "Record signs" panel
+  api.js                HTTP calls to the server
+  ui/                   (for body map, pain scale, phrase board)
 ```
 
 ## Setup
@@ -94,7 +107,61 @@ pip install -r requirements.txt
 cp .env.example .env   # then add your GEMINI_API_KEY
 ```
 
-Run instructions will be added once the server exists. Use Chrome for speech recognition.
+The app works without a Gemini key: questions and answers pass through unchanged, and the answer mode is guessed from simple keywords.
+
+## Run
+
+```bash
+source .venv/bin/activate
+uvicorn server.main:app --reload
+```
+
+Open http://localhost:8000 in **Chrome** and click Start. Allow camera and microphone access. If speech recognition struggles, type the medic's words in the box under the question.
+
+## Recording samples
+
+1. Click **Record signs**, enter your name, and pick a sign.
+2. Click **Record 20 samples**, hold the sign after the countdown, and move your hand slightly between samples.
+3. Aim for 60+ samples per sign (chips turn green), from several people.
+
+Samples are saved to `server/data/samples/<your-name>.json`. Commit your file so the whole team shares the same data. Each person has their own file, so there are no merge conflicts.
+
+The live label in the camera view shows the distance to the closest sample. If real signs show as "Not a known sign", raise `MAX_DISTANCE` in `server/classifier.py`. If random poses get recognized, lower it.
+
+## Message formats
+
+### WebSocket `/ws/signs`
+
+Browser → server, about 15 times a second:
+
+```json
+{"type": "landmarks", "mode": "yesno", "left_handed": false,
+ "hands": [{"handedness": "Right", "points": [[0.51, 0.62, -0.01], "...21 points"]}]}
+```
+
+Server → browser, for every frame (`label` is `null` when no sign matches):
+
+```json
+{"type": "prediction", "label": "YES", "confidence": 0.8, "distance": 1.2}
+```
+
+Once a sign has been held steadily, the server also sends:
+
+```json
+{"type": "sign", "label": "YES", "confidence": 0.8}
+```
+
+### HTTP routes
+
+| Route | Request body | Response |
+|---|---|---|
+| `GET /api/modes` | | `{"yesno": ["YES", "NO"], ...}` |
+| `GET /api/samples` | | sample counts, `{"YES": 40, ...}` |
+| `POST /api/samples` | `{"label", "signer", "left_handed", "frames": [hands, ...]}` | `{"label", "count"}` |
+| `DELETE /api/samples/{label}?signer=Name` | | `{"removed": 20}` |
+| `POST /api/simplify` | `{"text": "medic's words"}` | `{"text": "plain version", "mode": "yesno"}` |
+| `POST /api/answer` | `{"signs": ["8"], "mode": "number", "question": "..."}` | `{"text": "8 out of 10."}` |
+| `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note"}` |
 
 ## Team
 
