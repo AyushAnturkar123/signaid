@@ -109,6 +109,8 @@ cp .env.example .env   # then add your GEMINI_API_KEY
 
 The app works without a Gemini key: questions and answers pass through unchanged, and the answer mode is guessed from simple keywords.
 
+If Gemini is slower than 5 seconds or fails, the app uses the same offline fallback, so it never freezes. The server terminal logs every Gemini call (`Gemini answer ok in 0.84s`, or the reason it fell back). Before a demo, open http://localhost:8000/api/health to check that Gemini is working and every sign has samples.
+
 ## Run
 
 ```bash
@@ -164,6 +166,7 @@ Once a sign has been held steadily, the server also sends:
 
 | Route | Request body | Response |
 |---|---|---|
+| `GET /api/health` | | Gemini status (key set, last call result and time) and which signs still need samples |
 | `GET /api/modes` | | `{"yesno": ["YES", "NO"], ...}` |
 | `GET /api/samples` | | sample counts, `{"YES": 40, ...}` |
 | `POST /api/samples` | `{"label", "signer", "left_handed", "frames": [hands, ...]}` | `{"label", "count"}` |

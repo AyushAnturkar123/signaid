@@ -1,6 +1,9 @@
 """Gemini wrapper tests. The real API is never called: either there's no key
 (the fallbacks run) or _gemini is replaced with a fake reply."""
 
+import logging
+import time
+
 import pytest
 
 from server import llm
@@ -53,8 +56,8 @@ def test_summary_fallback_with_empty_log():
 def fake_gemini(monkeypatch, reply):
     calls = []
 
-    def fake(system, prompt, json_output=False):
-        calls.append({"system": system, "prompt": prompt, "json_output": json_output})
+    def fake(system, prompt, json_output=False, task="gemini"):
+        calls.append({"system": system, "prompt": prompt, "json_output": json_output, "task": task})
         return reply
 
     monkeypatch.setattr(llm, "_gemini", fake)
@@ -65,6 +68,7 @@ def test_simplify_uses_gemini_reply(monkeypatch):
     calls = fake_gemini(monkeypatch, '{"text": "Is it hard to breathe?", "mode": "yesno"}')
     assert llm.simplify("Are you experiencing dyspnea?") == {"text": "Is it hard to breathe?", "mode": "yesno"}
     assert calls[0]["json_output"] is True
+    assert calls[0]["task"] == "simplify"
     assert "dyspnea" in calls[0]["prompt"]
 
 
@@ -88,3 +92,51 @@ def test_answer_uses_gemini_reply(monkeypatch):
 
 def test_gemini_returns_none_without_key():
     assert llm._gemini("system", "prompt") is None
+
+
+# --- Time limit and logging. _call (the real API request) is replaced, so nothing goes online.
+
+@pytest.fixture
+def fake_key(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-real")
+
+
+def test_slow_gemini_times_out_and_falls_back(monkeypatch, fake_key, caplog):
+    monkeypatch.setattr(llm, "TIMEOUT_SECONDS", 0.2)
+    monkeypatch.setattr(llm, "_call", lambda *args: time.sleep(1) or "too late")
+    start = time.perf_counter()
+    assert llm.answer(["YES"], "yesno") == "Yes."
+    assert time.perf_counter() - start < 0.6  # didn't wait for the slow call
+    assert llm.last_call["task"] == "answer"
+    assert llm.last_call["result"] == "timeout"
+    assert "timeout" in caplog.text and "fallback" in caplog.text
+
+
+def test_gemini_error_falls_back(monkeypatch, fake_key, caplog):
+    def broken(*args):
+        raise ConnectionError("no internet")
+
+    monkeypatch.setattr(llm, "_call", broken)
+    assert llm.simplify("Are you cold?") == {"text": "Are you cold?", "mode": "yesno"}
+    assert llm.last_call["result"].startswith("error: ConnectionError")
+    assert "no internet" in caplog.text
+
+
+def test_empty_gemini_reply_falls_back(monkeypatch, fake_key):
+    monkeypatch.setattr(llm, "_call", lambda *args: None)
+    assert llm.answer(["8"], "number") == "8 out of 10."
+    assert llm.last_call["result"] == "empty reply"
+
+
+def test_successful_call_is_timed_and_logged(monkeypatch, fake_key, caplog):
+    caplog.set_level(logging.INFO, logger="signaid.llm")
+    monkeypatch.setattr(llm, "_call", lambda *args: "Yes, I'm cold.")
+    assert llm.answer(["YES"], "yesno", "Are you cold?") == "Yes, I'm cold."
+    assert llm.last_call["result"] == "ok"
+    assert llm.last_call["seconds"] is not None
+    assert "Gemini answer ok" in caplog.text
+
+
+def test_no_key_is_recorded():
+    llm.answer(["YES"], "yesno")
+    assert llm.last_call["result"] == "no key"

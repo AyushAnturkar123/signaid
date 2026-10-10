@@ -110,3 +110,6 @@ class SignClassifier:
 
     def counts(self):
         return Counter(s["label"] for s in self.samples)
+
+    def signers(self):
+        return sorted({s["signer"] for s in self.samples})

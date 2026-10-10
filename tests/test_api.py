@@ -29,6 +29,19 @@ def test_serves_the_web_app(client):
     assert "<title>SignAid</title>" in res.text
 
 
+def test_health_reports_gemini_and_samples(client):
+    record(client, "YES", 1, n=4)
+    record(client, "NO", 2, n=3, signer="Bob")
+    health = client.get("/api/health").json()
+    assert health["status"] == "ok"
+    assert health["gemini"]["key_set"] is False
+    assert health["gemini"]["timeout_seconds"] > 0
+    assert health["samples"]["total"] == 7
+    assert health["samples"]["signers"] == ["Alice", "Bob"]
+    assert health["samples"]["modes"]["yesno"] == {"signs_with_samples": 2, "signs_total": 2, "missing": []}
+    assert "PAIN" in health["samples"]["modes"]["free"]["missing"]
+
+
 def test_modes(client):
     modes = client.get("/api/modes").json()
     assert modes["yesno"] == ["YES", "NO"]

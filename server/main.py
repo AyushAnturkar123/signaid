@@ -18,6 +18,12 @@ from .smoothing import Smoother
 
 ROOT = Path(__file__).resolve().parent.parent
 log = logging.getLogger("signaid")
+# Show SignAid's own messages (e.g. Gemini timing) in the uvicorn terminal.
+if not log.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s - %(message)s"))
+    log.addHandler(_handler)
+    log.setLevel(logging.INFO)
 
 app = FastAPI(title="SignAid")
 classifier = SignClassifier(ROOT / "server" / "data" / "samples")
@@ -83,6 +89,34 @@ async def signs_socket(ws: WebSocket):
                 await ws.send_json({"type": "sign", "label": accepted, "confidence": round(confidence, 2)})
     except WebSocketDisconnect:
         pass
+
+
+@app.get("/api/health")
+def health():
+    """Quick pre-demo check: is Gemini set up, and which signs have samples?"""
+    counts = classifier.counts()
+    modes = {
+        mode: {
+            "signs_with_samples": sum(1 for label in labels if counts.get(label)),
+            "signs_total": len(labels),
+            "missing": [label for label in labels if not counts.get(label)],
+        }
+        for mode, labels in MODES.items()
+    }
+    return {
+        "status": "ok",
+        "gemini": {
+            "key_set": llm.key_is_set(),
+            "model": llm.MODEL,
+            "timeout_seconds": llm.TIMEOUT_SECONDS,
+            "last_call": llm.last_call,
+        },
+        "samples": {
+            "total": sum(counts.values()),
+            "signers": classifier.signers(),
+            "modes": modes,
+        },
+    }
 
 
 @app.get("/api/modes")
