@@ -47,6 +47,17 @@ class SignClassifier:
             self.samples.extend(json.loads(file.read_text()))
         self._rebuild()
 
+    @classmethod
+    def from_samples(cls, samples):
+        """An in-memory classifier from a list of samples, never saved to disk.
+        Used by scripts/evaluate.py to train on some signers and test on others."""
+        clf = cls.__new__(cls)
+        clf.folder = None
+        clf.lock = threading.Lock()
+        clf.samples = list(samples)
+        clf._rebuild()
+        return clf
+
     def _rebuild(self):
         by_mode = {}
         for mode, labels in MODES.items():
@@ -69,15 +80,20 @@ class SignClassifier:
         tmp.write_text("[\n" + ",\n".join(json.dumps(r) for r in rows) + "\n]\n")
         tmp.replace(path)
 
-    def predict(self, mode, hands, left_handed=False):
-        """Return (label, confidence, distance). label is None when nothing matches."""
+    def predict(self, mode, hands, left_handed=False, max_distance=None):
+        """Return (label, confidence, distance). label is None when nothing matches.
+
+        max_distance defaults to MAX_DISTANCE; pass float("inf") to never reject.
+        """
         if not hands or mode not in self.by_mode:
             return None, 0.0, None
+        if max_distance is None:
+            max_distance = MAX_DISTANCE
         X, y = self.by_mode[mode]
         dists = np.linalg.norm(X - features(hands, left_handed), axis=1)
         nearest = np.argsort(dists)[:K]
         closest = float(dists[nearest[0]])
-        if closest > MAX_DISTANCE:
+        if closest > max_distance:
             return None, 0.0, closest
         label, votes = Counter(y[nearest]).most_common(1)[0]
         return str(label), votes / len(nearest), closest

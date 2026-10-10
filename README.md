@@ -73,7 +73,7 @@ Every free-mode sign has a different handshape, so recognition doesn't need face
 ### Checking that signs register
 
 1. **Tracking (no code):** try each sign in the MediaPipe Studio hand landmarker demo. If the dots don't follow the fingers, or a hand disappears in a two-hand sign, replace the sign.
-2. **Classifier:** about 20 samples per sign from every teammate. Train on everyone but one person, test on that person, and check the confusion matrix. Target: about 90% correct per sign.
+2. **Classifier:** about 20 samples per sign from every teammate, then run `python scripts/evaluate.py` (see [Evaluating the classifier](#evaluating-the-classifier)). Target: about 90% correct per sign.
 3. **Live:** 10 tries per sign in the app, including people outside the team, different lighting, distance and sleeves. Weak signs at hour 16 become phrase board buttons.
 
 ## Project structure
@@ -138,6 +138,20 @@ The tests use fake hands and a temporary samples folder, so they need no camera,
 Samples are saved to `server/data/samples/<your-name>.json`. Commit your file so the whole team shares the same data. Each person has their own file, so there are no merge conflicts.
 
 The live label in the camera view shows the distance to the closest sample. If real signs show as "Not a known sign", raise `MAX_DISTANCE` in `server/classifier.py`. If random poses get recognized, lower it.
+
+## Evaluating the classifier
+
+```bash
+python scripts/evaluate.py
+python scripts/evaluate.py --mode number         # one mode only
+python scripts/evaluate.py --max-distance 3.0    # try a different cutoff
+```
+
+It tests each person against a classifier built from everyone else's samples, which is what happens with a real patient or a judge. For every sign it prints how often it was recognized, how often it was rejected as "not a known sign", and what it was mistaken for. Signs below 90% are marked `!!`.
+
+It also suggests a `MAX_DISTANCE` value from the real data. That needs samples from at least 2 people.
+
+What to do with weak signs: if two signs are mistaken for each other, re-record both and copy the reference video exactly. If one person scores much lower than the others, check their recordings. If a sign is still weak at hour 16, move it to the phrase board.
 
 ## Message formats
 
