@@ -1,0 +1,4 @@
+# Extra packages for development and testing:  pip install -r requirements-dev.txt
+-r requirements.txt
+pytest
+httpx2

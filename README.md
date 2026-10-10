@@ -118,6 +118,15 @@ uvicorn server.main:app --reload
 
 Open http://localhost:8000 in **Chrome** and click Start. Allow camera and microphone access. If speech recognition struggles, type the medic's words in the box under the question.
 
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The tests use fake hands and a temporary samples folder, so they need no camera, never call Gemini, and never touch real recordings. Run them before you push.
+
 ## Recording samples
 
 1. Click **Record signs**, enter your name, and pick a sign.

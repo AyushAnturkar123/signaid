@@ -4,8 +4,8 @@ Run from the repo root:  uvicorn server.main:app --reload
 """
 
 import logging
-import time
 from pathlib import Path
+from time import monotonic  # module-level so tests can swap in a fake clock
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -78,7 +78,7 @@ async def signs_socket(ws: WebSocket):
                 "confidence": round(confidence, 2),
                 "distance": None if distance is None else round(distance, 2),
             })
-            accepted = smoother.update(label, confidence, time.monotonic(), bool(hands))
+            accepted = smoother.update(label, confidence, monotonic(), bool(hands))
             if accepted:
                 await ws.send_json({"type": "sign", "label": accepted, "confidence": round(confidence, 2)})
     except WebSocketDisconnect:
