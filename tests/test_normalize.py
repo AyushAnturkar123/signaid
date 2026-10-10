@@ -53,3 +53,27 @@ def test_two_hand_mirroring_matches_right_handed():
 def test_malformed_points_raise():
     with pytest.raises(ValueError):
         features([{"handedness": "Right", "points": [[0, 0, 0]] * 5}])
+
+
+def tilt_toward_camera(hand, degrees):
+    """Rotate a hand around its wrist so the fingers point toward the camera."""
+    pts = np.asarray(hand["points"])
+    a = np.radians(degrees)
+    rot = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+    return {"handedness": hand["handedness"], "points": ((pts - pts[0]) @ rot.T + pts[0]).tolist()}
+
+
+def test_hand_size_stays_the_same_when_tilted_toward_camera():
+    from server.normalize import _points, _scale
+
+    upright = make_hand(1, noise=0)
+    tilted = tilt_toward_camera(upright, 70)  # a fist pointing almost at the camera
+    assert _scale(_points(tilted)) == pytest.approx(_scale(_points(upright)))
+
+
+def test_tilted_hand_is_not_blown_up():
+    # The old 2D sizing made a hand pointing at the camera look several times
+    # bigger after scaling, so it matched nothing.
+    upright = features([make_hand(1, noise=0)])
+    tilted = features([tilt_toward_camera(make_hand(1, noise=0), 70)])
+    assert np.linalg.norm(tilted) == pytest.approx(np.linalg.norm(upright), rel=0.01)

@@ -9,6 +9,16 @@ import numpy as np
 
 WRIST = 0
 MIDDLE_KNUCKLE = 9
+INDEX_KNUCKLE, RING_KNUCKLE, PINKY_KNUCKLE = 5, 13, 17
+# Wrist to each knuckle, and across the palm. These bones don't bend, so their
+# length only depends on hand size and distance from the camera.
+PALM_SEGMENTS = [
+    (WRIST, INDEX_KNUCKLE),
+    (WRIST, MIDDLE_KNUCKLE),
+    (WRIST, RING_KNUCKLE),
+    (WRIST, PINKY_KNUCKLE),
+    (INDEX_KNUCKLE, PINKY_KNUCKLE),
+]
 POINTS_PER_HAND = 21
 HAND_FEATURES = POINTS_PER_HAND * 3
 # Large enough that one-hand and two-hand signs never match each other.
@@ -27,7 +37,14 @@ def _points(hand):
 
 
 def _scale(points):
-    size = np.linalg.norm(points[MIDDLE_KNUCKLE, :2] - points[WRIST, :2])
+    """How big the hand is, so near and far hands can be compared.
+
+    Averages several palm lengths in 3D (wrist to each knuckle, plus the palm's
+    width). A single line seen flat by the camera shrinks when the hand points at
+    the camera, like a pencil pointed at you; 3D lengths stay the same however
+    the hand is turned.
+    """
+    size = np.mean([np.linalg.norm(points[a] - points[b]) for a, b in PALM_SEGMENTS])
     return size if size > 1e-6 else 1.0
 
 
