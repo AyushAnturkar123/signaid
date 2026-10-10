@@ -5,7 +5,7 @@ import { api } from "./api.js";
 import { startCamera } from "./camera.js";
 import { setupRecorder } from "./recorder.js";
 import { connectSigns } from "./socket.js";
-import { speak, speechSupported, startListening } from "./speech.js";
+import { speak, speechSupported, startListening, stopListening } from "./speech.js";
 
 const $ = (id) => document.getElementById(id);
 const SEND_INTERVAL_MS = 66; // ~15 frames a second to the classifier
@@ -131,14 +131,9 @@ async function start() {
     if (!connected) $("live").textContent = "Reconnecting to server…";
   });
 
-  if (speechSupported) {
-    startListening({
-      onFinal: onMedicSpeech,
-      onInterim: (text) => ($("heard").textContent = text),
-      onStatus: (text) => ($("mic-status").textContent = text),
-    });
-  } else {
-    $("mic-status").textContent = "Speech not supported, use Chrome";
+  if (!speechSupported) {
+    $("mic-btn").textContent = "Speech not supported, use Chrome";
+    $("mic-btn").disabled = true;
   }
 
   addLog("patient", INTRO);
@@ -151,7 +146,28 @@ async function start() {
   }
 }
 
+// The mic starts off: while testing signs, background speech would otherwise be taken
+// as a medic question and switch the answer mode.
+let micOn = false;
+function toggleMic() {
+  micOn = !micOn;
+  const btn = $("mic-btn");
+  btn.setAttribute("aria-pressed", String(micOn));
+  btn.classList.toggle("active", micOn);
+  if (micOn) {
+    startListening({
+      onFinal: onMedicSpeech,
+      onInterim: (text) => ($("heard").textContent = text),
+      onStatus: (text) => (btn.textContent = text),
+    });
+  } else {
+    stopListening();
+    $("heard").textContent = "";
+  }
+}
+
 $("start-btn").addEventListener("click", start);
+$("mic-btn").addEventListener("click", toggleMic);
 $("send-btn").addEventListener("click", sendAnswer);
 $("clear-btn").addEventListener("click", () => {
   state.answer = [];

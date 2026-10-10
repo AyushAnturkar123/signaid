@@ -4,6 +4,7 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const speechSupported = Boolean(Recognition);
 
 let recognizer = null;
+let enabled = false; // the mic button is on
 let paused = false; // true while the app is speaking, so it doesn't transcribe itself
 let blocked = false; // true if the mic permission was denied
 let handlers = {};
@@ -19,6 +20,12 @@ function safeStart() {
 // handlers: { onFinal(text), onInterim(text), onStatus(text) }
 export function startListening(h) {
   handlers = h;
+  enabled = true;
+  blocked = false; // try again, in case permission was granted since
+  if (recognizer) {
+    safeStart();
+    return;
+  }
   recognizer = new Recognition();
   recognizer.continuous = true;
   recognizer.interimResults = true;
@@ -48,9 +55,16 @@ export function startListening(h) {
   };
   // Chrome stops listening after a while; restart unless we paused it on purpose.
   recognizer.onend = () => {
-    if (!paused && !blocked) safeStart();
+    if (enabled && !paused && !blocked) safeStart();
+    else if (!enabled) handlers.onStatus?.("🎤 Mic off");
   };
   safeStart();
+}
+
+export function stopListening() {
+  enabled = false;
+  recognizer?.abort();
+  handlers.onStatus?.("🎤 Mic off");
 }
 
 export function speak(text) {
@@ -63,7 +77,8 @@ export function speak(text) {
     utterance.rate = 0.95;
     const done = () => {
       paused = false;
-      if (recognizer && !blocked) safeStart();
+      if (recognizer && enabled && !blocked) safeStart();
+      else handlers.onStatus?.(enabled ? "🎤 Listening" : "🎤 Mic off");
       resolve();
     };
     utterance.onend = done;
