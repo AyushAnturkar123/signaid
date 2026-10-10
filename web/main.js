@@ -12,7 +12,7 @@ const SEND_INTERVAL_MS = 66; // ~15 frames a second to the classifier
 const MODE_NAMES = { yesno: "Yes / No", number: "Number", spelling: "Spelling", free: "Free" };
 const INTRO = "I'm Deaf. Please speak to me, and I'll answer with signs.";
 
-const state = { mode: "free", question: "", answer: [], log: [], hands: [] };
+const state = { mode: "free", question: "", answer: [], log: [], hands: [], modes: {} };
 let sendToServer = () => {};
 let lastSent = 0;
 let recorder = { isLeftHanded: () => false };
@@ -21,7 +21,20 @@ function setMode(mode) {
   state.mode = mode;
   state.answer = [];
   for (const btn of $("mode-buttons").children) btn.classList.toggle("active", btn.dataset.mode === mode);
+  renderQuickReplies();
   renderAnswer();
+}
+
+// One tap-to-answer button per sign in the current mode, as a backup when a sign isn't recognized.
+function renderQuickReplies() {
+  const box = $("quick-replies");
+  box.replaceChildren();
+  for (const label of state.modes[state.mode] ?? []) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.addEventListener("click", () => addSign(label));
+    box.append(btn);
+  }
 }
 
 function renderAnswer() {
@@ -124,6 +137,7 @@ function buildModeButtons(modes) {
 async function start() {
   $("start-screen").hidden = true;
   const modes = await api.modes();
+  state.modes = modes;
   buildModeButtons(modes);
   setMode("free");
   recorder = setupRecorder(modes, MODE_NAMES, () => state.hands);

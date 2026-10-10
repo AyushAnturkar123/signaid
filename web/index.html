@@ -4,27 +4,50 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SignAid</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- A typeface designed for maximum legibility. Falls back to the system font offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%2317794b' d='M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z'/%3E%3Cpath fill='%23fff' d='M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="signaid.css">
 </head>
 <body>
   <div id="start-screen" class="overlay">
-    <h1>SignAid</h1>
-    <p>ASL communication aid for emergencies</p>
+    <span class="logo logo-large">
+      <svg width="72" height="72" viewBox="0 0 48 48" aria-hidden="true">
+        <path class="logo-bubble" d="M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z"/>
+        <path class="logo-cross" d="M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z"/>
+      </svg>
+      <span class="logo-text">SignAid</span>
+    </span>
+    <p class="tagline">Talk with a medic using ASL, even without an interpreter.</p>
     <button id="start-btn" class="primary big">Start</button>
-    <p class="muted">Uses the camera and microphone. Video stays on this device.</p>
+    <p class="muted privacy">Uses your camera and microphone. Video never leaves this device.</p>
   </div>
 
   <header>
-    <h1>SignAid</h1>
-    <button id="mic-btn" aria-pressed="false">🎤 Mic off</button>
-    <nav id="mode-buttons" aria-label="Answer mode"></nav>
-    <button id="recorder-toggle">Record signs</button>
+    <div class="header-left">
+      <button id="mic-btn" class="pill" aria-pressed="false">🎤 Mic off</button>
+    </div>
+    <h1>
+      <span class="logo">
+        <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+          <path class="logo-bubble" d="M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z"/>
+          <path class="logo-cross" d="M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z"/>
+        </svg>
+        <span class="logo-text">SignAid</span>
+      </span>
+    </h1>
+    <div class="header-right row">
+      <button id="recorder-toggle">Record signs</button>
+      <button id="summary-btn">Handoff summary</button>
+    </div>
   </header>
 
   <main>
     <section class="card question">
       <h2>Medic said</h2>
-      <p id="question">Waiting for the medic to speak…</p>
+      <p id="question" aria-live="polite">Waiting for the medic to speak…</p>
       <p id="heard" class="muted"></p>
       <form id="type-form" class="row">
         <input id="type-input" placeholder="Or type what the medic said" autocomplete="off" aria-label="Type what the medic said">
@@ -32,29 +55,40 @@
       </form>
     </section>
 
-    <section class="camera">
-      <video id="video" playsinline muted></video>
-      <canvas id="overlay"></canvas>
+    <section id="camera" class="camera">
+      <div class="frame">
+        <!-- Mirrored with CSS only, so it feels like a mirror to the signer -->
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
       <div id="live" class="pill">Camera starting…</div>
     </section>
 
-    <div class="side">
-      <section class="card answer">
-        <h2>You signed</h2>
-        <p id="answer">—</p>
-        <div class="row">
-          <button id="send-btn" class="primary">✓ Send</button>
-          <button id="backspace-btn" aria-label="Remove last sign">⌫</button>
-          <button id="clear-btn">✗ Clear</button>
-        </div>
-      </section>
+    <section class="guide" aria-label="Hand signal guide">
+      <button id="guide-btn" aria-label="Open the hand signal guide full size">
+        <img src="hand-signal-guide.png" width="1024" height="768"
+             alt="Hand signal guide showing signs for yes, no, pain, help, water, food or eat, bathroom, cold, stop, and phone or call">
+      </button>
+    </section>
 
-      <section class="card log">
-        <h2>Conversation</h2>
-        <ol id="log"></ol>
-        <button id="summary-btn">Handoff summary</button>
-      </section>
-    </div>
+    <section class="card answer">
+      <h2>You signed</h2>
+      <p id="answer" aria-live="polite">—</p>
+      <div class="row">
+        <button id="send-btn" class="primary" disabled>Send answer</button>
+        <button id="backspace-btn" aria-label="Remove last sign">⌫</button>
+        <button id="clear-btn">Clear</button>
+      </div>
+      <div class="modes">
+        <nav id="mode-buttons" class="row" aria-label="Answer mode"></nav>
+        <div id="quick-replies" class="row" aria-label="Tap to answer"></div>
+      </div>
+    </section>
+
+    <section class="card log">
+      <h2>Conversation</h2>
+      <ol id="log"></ol>
+    </section>
   </main>
 
   <aside id="recorder" class="card" hidden>
@@ -70,12 +104,38 @@
     <div id="rec-counts"></div>
   </aside>
 
+  <dialog id="guide-dialog">
+    <img src="hand-signal-guide.png" alt="Hand signal guide, full size" width="1024" height="768">
+    <form method="dialog" class="row"><button class="primary">Close</button></form>
+  </dialog>
+
   <dialog id="summary-dialog">
     <h2>Handoff summary</h2>
     <pre id="summary-text"></pre>
-    <form method="dialog"><button class="primary">Close</button></form>
+    <div class="row">
+      <button id="copy-btn">Copy summary</button>
+      <form method="dialog"><button class="primary">Close</button></form>
+    </div>
   </dialog>
 
   <script type="module" src="main.js"></script>
+  <script type="module">
+    // Design-only touches. All app logic lives in main.js.
+    const $ = (id) => document.getElementById(id);
+
+    $("guide-btn").addEventListener("click", () => $("guide-dialog").showModal());
+    $("copy-btn").addEventListener("click", () => navigator.clipboard?.writeText($("summary-text").textContent));
+
+    // main.js writes plain text into #live and #mic-btn; colour them from that text.
+    const onTextChange = (el, fn) => new MutationObserver(fn).observe(el, { childList: true, characterData: true, subtree: true });
+    onTextChange($("live"), () => {
+      const text = $("live").textContent;
+      const handInView = text.startsWith("Seeing") || text.startsWith("Not a known sign");
+      $("live").classList.toggle("good", handInView);
+      $("live").classList.toggle("warn", text.startsWith("Camera error"));
+      $("camera").classList.toggle("tracking", handInView);
+    });
+    onTextChange($("mic-btn"), () => $("mic-btn").classList.toggle("good", $("mic-btn").textContent.includes("Listening")));
+  </script>
 </body>
 </html>

@@ -125,7 +125,7 @@ server/                 Python backend (run with uvicorn)
   llm.py                Gemini prompts, with offline fallbacks
   data/samples/         recorded samples, one JSON file per signer
 web/                    Frontend (plain HTML/CSS/JS, no build step)
-  index.html, style.css
+  index.html, signaid.css
   main.js               conversation loop, wires everything together
   camera.js             webcam + MediaPipe hand tracking
   socket.js             WebSocket to the classifier
