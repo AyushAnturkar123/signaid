@@ -24,4 +24,5 @@ export const api = {
   answer: (signs, mode, question) => request("POST", "/api/answer", { signs, mode, question }),
   summary: (log) => request("POST", "/api/summary", { log }),
   followUp: (log) => request("POST", "/api/follow-up", { log }),
+  opening: () => request("GET", "/api/opening"),
 };

@@ -95,7 +95,7 @@ def run(name, opening, answers, expected_mode):
             break  # the scenario has no more answers to give
         print(f"   Patient: {answers[step]}")
         log.append({"role": "patient", "text": answers[step]})
-    if len(asked) > llm.MAX_FOLLOW_UPS:
+    if len([q for q in asked if q != llm.CLOSING_QUESTION.lower()]) > llm.MAX_FOLLOW_UPS:
         problems.append("more than 3 follow-ups in a row")
     return problems
 

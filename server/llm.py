@@ -308,6 +308,16 @@ FOLLOW_UP_ROLE = "signaid"
 # Then SignAid stops and waits for the medic, so it never turns into an endless interview.
 MAX_FOLLOW_UPS = 3
 
+# When SignAid's follow-ups for a symptom are finished, it asks about other symptoms. YES starts a
+# new round for the next symptom; NO ends the interview and the app opens the handoff summary.
+CLOSING_QUESTION = "Do you have any other symptoms?"
+NEXT_SYMPTOM_QUESTION = "What other symptom do you have?"
+# Asked right after the patient's opening line, without waiting for the medic.
+OPENING_QUESTION = "What symptoms do you have?"
+OPENING = {"question": OPENING_QUESTION, "mode": "free"}
+# Each of these starts a symptom round: follow-ups are counted, and pain steps scoped, from there.
+ROUND_START_QUESTIONS = {OPENING_QUESTION, NEXT_SYMPTOM_QUESTION}
+
 FOLLOW_UP_SYSTEM = f"""You are SignAid, an app that helps a Deaf patient talk with a medic in a
 medical emergency. The patient answers only with hand signs. Questions come from the MEDIC or
 from you (SIGNAID). After the patient's latest answer, decide whether ONE short follow-up
@@ -325,6 +335,7 @@ Rules:
   in the conversation, and never ask for a detail the patient already gave.
 - At most 12 words, plain everyday words.
 - Never diagnose, suggest a cause, give advice or tell anyone what to do.
+- Never ask whether the patient has other symptoms; the app asks that itself.
 - If nothing important is missing, or the latest answer leaves nothing to follow up on (such as
   "No." to a yes/no question, or the patient's opening line about being Deaf), reply with null.
 
@@ -342,6 +353,8 @@ WHERE_QUESTION = re.compile(r"\bwhere\b", re.I)
 NEGATION = re.compile(r"\b(no|not|don't|do not|without|denies)\b", re.I)
 PAIN_LEVEL_GIVEN = re.compile(r"\b([1-9]|10) out of 10\b", re.I)
 NO_FOLLOW_UP = {"question": None, "mode": None}
+# The patient said they have no other symptoms: the app opens the handoff summary.
+INTERVIEW_DONE = {"question": None, "mode": None, "done": True}
 
 
 def _questions(log_entries):
@@ -349,21 +362,55 @@ def _questions(log_entries):
 
 
 def _follow_ups_in_a_row(log_entries):
+    """SignAid follow-ups since the medic last spoke or the current symptom round started
+    (the round's opening question itself doesn't count)."""
     count = 0
     for e in reversed(log_entries):
         if e["role"] == "medic":
             break
         if e["role"] == FOLLOW_UP_ROLE:
+            if e["text"] in ROUND_START_QUESTIONS:
+                break
             count += 1
     return count
+
+
+def _signaid_is_leading(log_entries):
+    """True if SignAid asked something since the medic last spoke."""
+    for e in reversed(log_entries):
+        if e["role"] == "medic":
+            return False
+        if e["role"] == FOLLOW_UP_ROLE:
+            return True
+    return False
+
+
+def _current_round(log_entries):
+    """The entries since the current symptom round started (after "What other symptom...")."""
+    for i in range(len(log_entries) - 1, -1, -1):
+        e = log_entries[i]
+        if e["role"] == FOLLOW_UP_ROLE and e["text"] in ROUND_START_QUESTIONS:
+            return log_entries[i:]
+    return log_entries
+
+
+def _last_question(log_entries):
+    return next((e for e in reversed(log_entries) if e["role"] != "patient"), None)
+
+
+def _is_yes(text):
+    """A patient answer to the closing question: "Yes." / "Yes, I have other symptoms." vs "No." """
+    text = text.strip().lower()
+    return bool(re.match(r"yes\b", text)) and not NEGATION.search(text)
 
 
 def _pain_follow_up(log_entries):
     """The pain steps, always in this order: PAIN -> pain level (Number) -> where (Pain location).
 
-    A fixed rule rather than Gemini, so the order is guaranteed and it works offline.
+    A fixed rule rather than Gemini, so the order is guaranteed and it works offline. Only the
+    current symptom round counts, so a second pain gets its own level and location.
     """
-    questions = _questions(log_entries)
+    questions = _questions(_current_round(log_entries))
     latest = log_entries[-1]["text"]
     if (
         re.search(r"\bpain\b", latest, re.I)
@@ -386,11 +433,29 @@ def _fallback_follow_up(log_entries):
 
 
 def follow_up(log_entries):
-    """Conversation log -> {"question": str, "mode": str}, or both None when no follow-up is needed."""
+    """Conversation log -> {"question": str, "mode": str}, both None when nothing is needed, or
+    INTERVIEW_DONE once the patient says they have no other symptoms."""
     if not log_entries or log_entries[-1]["role"] != "patient":
         return NO_FOLLOW_UP
-    if _follow_ups_in_a_row(log_entries) >= MAX_FOLLOW_UPS:
-        return NO_FOLLOW_UP
+    last = _last_question(log_entries)
+    if last and last["role"] == FOLLOW_UP_ROLE and last["text"] == CLOSING_QUESTION:
+        if _is_yes(log_entries[-1]["text"]):
+            return {"question": NEXT_SYMPTOM_QUESTION, "mode": "free", "new_round": True}
+        return INTERVIEW_DONE
+    chain = _follow_ups_in_a_row(log_entries)
+    if chain < MAX_FOLLOW_UPS:
+        question = _detail_follow_up(log_entries)
+        if question["question"]:
+            return question
+    # SignAid's own questions about this symptom are finished: ask about other symptoms.
+    # Only when SignAid is leading; when the medic is asking, SignAid doesn't interrupt.
+    if _signaid_is_leading(log_entries):
+        return {"question": CLOSING_QUESTION, "mode": "yesno"}
+    return NO_FOLLOW_UP
+
+
+def _detail_follow_up(log_entries):
+    """One follow-up about the patient's latest answer: the pain steps first, then Gemini."""
     pain = _pain_follow_up(log_entries)
     if pain["question"]:
         return pain

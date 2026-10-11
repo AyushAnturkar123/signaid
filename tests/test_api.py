@@ -213,3 +213,17 @@ def test_follow_up_route(client):
         "question": "How bad is your pain, 1 to 10?", "mode": "number"}
     log.append({"role": "medic", "text": "Okay."})
     assert client.post("/api/follow-up", json={"log": log}).json() == {"question": None, "mode": None}
+
+
+
+def test_follow_up_route_reports_done(client):
+    log = [
+        {"role": "signaid", "text": "Do you have any other symptoms?"},
+        {"role": "patient", "text": "No."},
+    ]
+    assert client.post("/api/follow-up", json={"log": log}).json() == {"question": None, "mode": None, "done": True}
+
+
+
+def test_opening_route(client):
+    assert client.get("/api/opening").json() == {"question": "What symptoms do you have?", "mode": "free"}

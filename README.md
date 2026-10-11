@@ -1,6 +1,8 @@
 # SignAid
 
-An ASL communication aid for emergency medical situations. A Deaf patient answers a medic's questions with signs (YES/NO, pain 1–10, a few key medical signs, fingerspelling), and SignAid speaks the answers aloud and shows the medic's speech as large captions.
+An ASL communication aid for emergency medical situations. A Deaf patient answers with signs (YES/NO, pain 1–10, pain location, key medical signs, fingerspelling), and SignAid speaks the answers aloud and shows the medic's speech as large, plain-language captions.
+
+SignAid starts by asking "What symptoms do you have?", follows up on its own (pain → how bad → where), asks "Do you have any other symptoms?", and finishes with a structured handoff summary for ER staff. The patient never has to touch the device: control signs (DONE, CLEAR, DELETE) send and correct answers.
 
 Built at HackNC 2026.
 
@@ -8,8 +10,8 @@ Built at HackNC 2026.
 
 ## How it works
 
-- **Browser (`web/`):** webcam, MediaPipe hand tracking, speech-to-text and text-to-speech (Web Speech API), patient UI.
-- **Python (`server/`):** FastAPI server, sign classifier (nearest-neighbor on hand landmarks), Gemini for plain-language questions, answers, and the handoff summary.
+- **Browser (`web/`):** webcam, MediaPipe hand tracking (WebAssembly, on the device), speech-to-text and text-to-speech (Web Speech API), the landing page and live session UI. Video never leaves the device.
+- **Python (`server/`):** FastAPI server, sign classifier (nearest-neighbor on hand landmarks, over a WebSocket), follow-up questions, and Gemini for plain-language questions, spoken answers and the handoff summary. Every Gemini call has a time limit and an offline fallback.
 
 ## Sign list
 
@@ -149,11 +151,12 @@ server/                 Python backend (run with uvicorn)
   signs.py              sign list, grouped by recognition mode
   normalize.py          hand landmarks -> fixed-length list of numbers
   classifier.py         nearest-neighbor classifier (the recorded samples are the model)
-  smoothing.py          accepts a sign only after it's held ~0.5 s
-  llm.py                Gemini prompts, with offline fallbacks
+  smoothing.py          accepts a sign only after it's held 0.5 s (1 s for control signs)
+  llm.py                Gemini prompts, follow-up questions, offline fallbacks
   data/samples/         recorded samples, one JSON file per signer
 web/                    Frontend (plain HTML/CSS/JS, no build step)
-  index.html, signaid.css
+  index.html, signaid.css   landing page and live session
+  hand-signal-guide.png     the hand signal chart shown in the Sign guide
   main.js               conversation loop, wires everything together
   camera.js             webcam + MediaPipe hand tracking
   socket.js             WebSocket to the classifier
@@ -163,8 +166,14 @@ web/                    Frontend (plain HTML/CSS/JS, no build step)
   ui/                   on-screen pieces of the hands-free flow
     alerts.js           "New question" flash, "Said to medic" banner
     control-guide.js    DONE / CLEAR / DELETE guide next to the camera
+    fullscreen.js       full-screen camera with a caption bar
     phone.js            keeps a phone's screen awake
   manifest.json, icons/ lets a phone add SignAid to its home screen
+scripts/
+  evaluate.py           tests each signer against everyone else's samples
+  try_prompts.py        real-Gemini check of the prompts (output saved next to it)
+  try_followups.py      real-Gemini check of follow-up questions (output saved next to it)
+tests/                  pytest suite: fake hands and a fake Gemini, runs offline
 ```
 
 ## Setup
@@ -284,6 +293,8 @@ The live label in the camera view shows the distance to the closest sample. If r
 
 ## Follow-up questions
 
+As soon as the session starts, SignAid asks **"What symptoms do you have?"** in Free mode, without waiting for the medic. The patient's answer starts the first symptom round.
+
 After the patient answers, SignAid can ask **one short follow-up** on screen and switch to the tab the patient answers in. For example, the patient signs PAIN and DONE, and SignAid asks "How bad is your pain, 1 to 10?" in Number mode, then "Where is the pain?" in **Pain location** mode (CHEST, HEAD, LEGS), then Gemini asks "Did it start suddenly?" in Yes/No mode.
 
 - **The pain steps are a fixed rule**, not Gemini: pain level first, then location, always in that order, also offline. It skips the level if the patient already gave one, and never asks after a "no pain" answer. Gemini handles every other follow-up (allergies, medications, HELP, onset).
@@ -293,6 +304,7 @@ After the patient answers, SignAid can ask **one short follow-up** on screen and
 - **At most 3 follow-ups in a row**, then SignAid waits for the medic. A new medic question always takes over.
 - Never a diagnosis, cause or advice, and never the same question twice.
 - **Offline fallback** (no key, timeout or rate limit): the pain steps still run; other follow-ups are skipped.
+- **"Do you have any other symptoms?"** When SignAid's follow-ups for a symptom are done, it asks this in Yes/No mode (a fixed rule, also offline). **Yes:** "What other symptom do you have?" in Free mode starts a new round with fresh follow-ups, and the Handoff summary card refreshes in the background. **No:** scanning stops, full screen closes, and the handoff summary opens full size for the medic. SignAid only asks this after its own follow-ups, never in the middle of the medic's questions.
 
 Try it with the real key (it checks the mode, length, repeats and diagnosis words):
 
@@ -351,7 +363,8 @@ Once a sign has been held steadily (0.5 s, or 1 s for control signs), the server
 | `DELETE /api/samples/{label}?signer=Name` | | `{"removed": 20}` |
 | `POST /api/simplify` | `{"text": "medic's words"}` | `{"text": "plain version", "mode": "yesno"}` |
 | `POST /api/answer` | `{"signs": ["8"], "mode": "number", "question": "..."}` | `{"text": "8 out of 10."}` |
-| `POST /api/follow-up` | `{"log": [...]}` (same as summary) | `{"question": "How bad is your pain, 1 to 10?", "mode": "number"}`, or both `null` |
+| `GET /api/opening` | | `{"question": "What symptoms do you have?", "mode": "free"}`, asked at Start |
+| `POST /api/follow-up` | `{"log": [...]}` (same as summary) | `{"question": "How bad is your pain, 1 to 10?", "mode": "number"}`, or both `null`. `"new_round": true` on "What other symptom do you have?", and `{"question": null, "mode": null, "done": true}` after "no other symptoms" |
 | `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note", "needs_attention": ["chest pain with trouble breathing"]}` |
 
 ### Handoff summary
@@ -390,6 +403,14 @@ Other answers:
 - Every field uses only what the patient confirmed, and "not asked" for anything the conversation didn't cover.
 - With no key, a timeout, an error, or JSON that is invalid or missing a field, `text` is the first line followed by the plain transcript, and `needs_attention` is `[]`.
 
+## Built with AI
+
+- **Google Gemini API** (Flash-Lite, through `google-genai`) runs inside SignAid: it simplifies the medic's speech, turns signs into sentences, suggests follow-up questions and writes the handoff summary. It is told never to diagnose, and the critical steps are fixed rules, not AI choices.
+- **Claude (Claude Code, by Anthropic)** was our development assistant: it helped plan the architecture, write and review code and tests, debug from our recorded data, and review pull requests. It isn't part of the running app.
+
 ## Team
 
-- TBD
+- Ayush Anturkar
+- Vivaan Ranadive
+- Aarav
+- Mayank

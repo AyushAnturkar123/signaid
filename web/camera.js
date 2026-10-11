@@ -42,8 +42,9 @@ export async function startCamera(video, canvas, onHands) {
       const result = landmarker.detectForVideo(video, performance.now());
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const landmarks of result.landmarks) {
-        draw.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: "#4c9eff", lineWidth: 4 });
-        draw.drawLandmarks(landmarks, { color: "#ffffff", fillColor: "#0b6bcb", radius: 4 });
+        // Mint bones, and white rings with a dark centre for the joints
+        draw.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, { color: "#45e3a0", lineWidth: 4 });
+        draw.drawLandmarks(landmarks, { color: "#ffffff", fillColor: "#0a120f", lineWidth: 2, radius: 4 });
       }
       onHands(toHands(result));
     }
