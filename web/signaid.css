@@ -241,6 +241,50 @@ main {
 
 #live { position: absolute; left: 14px; top: 14px; }
 
+/* Full screen toggle, top right of the video */
+.fs-btn {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  padding: 8px 14px;
+  min-height: 0;
+  font-size: 0.95rem;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Caption bar: hidden normally, shown at the bottom in full screen */
+.fs-bar { display: none; }
+.camera:fullscreen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 0;
+  background: #000;
+}
+.camera:fullscreen .frame {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+/* contain, so the whole camera view (and the hand dots) stays visible on any screen shape */
+.camera:fullscreen .frame video,
+.camera:fullscreen .frame canvas { object-fit: contain; }
+.camera:fullscreen .fs-bar {
+  display: block;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  background: rgba(20, 30, 25, 0.95);
+  color: #fff;
+}
+.fs-bar p { margin: 0; line-height: 1.3; }
+#fs-medic { font-size: 1.3rem; color: #cfe9da; min-height: 1.3em; }
+#fs-medic:empty::before { content: "Waiting for the medic to speak…"; opacity: 0.7; }
+#fs-patient { margin-top: 6px; font-size: 2rem; font-weight: 700; }
+#fs-patient.confirming { color: var(--accent-bright); }
+
 /* Start / pause recognition, centred at the bottom of the video */
 .scan-btn {
   position: absolute;

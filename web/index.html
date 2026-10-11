@@ -66,6 +66,12 @@
         <div id="live" class="pill">Camera starting…</div>
         <!-- Recognition starts paused, so testing or setting up never adds signs by accident -->
         <button id="scan-btn" class="scan-btn" aria-pressed="false">▶ Start scanning</button>
+        <button id="fullscreen-btn" class="fs-btn" aria-pressed="false">⛶ Full screen</button>
+      </div>
+      <!-- Only shown in full screen: the rest of the page is hidden there -->
+      <div id="fs-bar" class="fs-bar" aria-live="polite">
+        <p id="fs-medic"></p>
+        <p id="fs-patient"></p>
       </div>
     </section>
 

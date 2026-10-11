@@ -9,6 +9,7 @@ import { connectSigns } from "./socket.js";
 import { speak, speechSupported, startListening, stopListening } from "./speech.js";
 import { flashNewQuestion, showSpoken } from "./ui/alerts.js";
 import { renderControlGuide } from "./ui/control-guide.js";
+import { setupFullscreen } from "./ui/fullscreen.js";
 import { renderStep } from "./ui/step.js";
 
 const $ = (id) => document.getElementById(id);
@@ -282,6 +283,7 @@ new MutationObserver(() => {
 }).observe($("recorder"), { attributes: true, attributeFilter: ["hidden"] });
 
 renderControlGuide($("control-guide"));
+setupFullscreen();
 
 $("start-btn").addEventListener("click", start);
 $("scan-btn").addEventListener("click", () => setScanning(!state.scanning));
