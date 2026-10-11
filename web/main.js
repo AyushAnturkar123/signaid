@@ -290,7 +290,6 @@ async function start() {
     $("mic-label").textContent = "Speech not supported, use Chrome";
     $("mic-btn").disabled = true;
   }
-  setMic(true);
 
   addLog("patient", INTRO);
   say(INTRO);
@@ -303,7 +302,8 @@ async function start() {
   }
 }
 
-// The mic turns on at Start, so nobody has to touch the computer. The button can still turn it off.
+// The mic starts off (muted): background talk would otherwise be taken as a medic question.
+// The medic turns it on with the mic button when they're ready to speak.
 let micOn = false;
 function setMic(on) {
   if (on === micOn || !speechSupported) return;
