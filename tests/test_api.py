@@ -1,10 +1,12 @@
 """API tests using FastAPI's test client. A temporary samples folder replaces the
 real one, so tests never read or change anyone's recordings."""
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
-from server import main
+from server import llm, main
 from server.classifier import SignClassifier
 from tests.conftest import make_hand
 
@@ -89,9 +91,70 @@ def test_answer(client):
     assert res.json() == {"text": "7 out of 10."}
 
 
+SUMMARY_LOG = {"log": [
+    {"role": "medic", "text": "Do you have any allergies?"},
+    {"role": "patient", "text": "Yes."},
+    {"role": "medic", "text": "What are you allergic to?"},
+    {"role": "patient", "text": "PENICILLIN"},
+]}
+SUMMARY_JSON = {
+    "chief_complaint": "not asked",
+    "pain": {"level": "not asked", "location": "not asked"},
+    "allergies": "penicillin",
+    "medications": "not asked",
+    "other_answers": [],
+    "needs_attention": ["allergy to penicillin"],
+}
+
+
+def fake_gemini(monkeypatch, reply):
+    """Replace the Gemini call with a canned reply, so the route never goes online."""
+    monkeypatch.setattr(llm, "_gemini", lambda *args, **kwargs: reply)
+
+
 def test_summary(client):
+    # no key in tests, so this is the plain fallback
     res = client.post("/api/summary", json={"log": [{"role": "medic", "text": "Any allergies?"}]})
+    assert res.status_code == 200
     assert res.json()["text"].startswith("Patient is Deaf")
+    assert res.json()["needs_attention"] == []
+
+
+def test_summary_returns_text_and_needs_attention(client, monkeypatch):
+    fake_gemini(monkeypatch, json.dumps(SUMMARY_JSON))
+    res = client.post("/api/summary", json=SUMMARY_LOG)
+    assert res.status_code == 200
+    body = res.json()
+    assert set(body) == {"text", "needs_attention"}
+    assert body["needs_attention"] == ["allergy to penicillin"]
+    text = body["text"]
+    assert text.startswith("Patient is Deaf and needs an ASL interpreter.")
+    assert "- Flagged for attention: allergy to penicillin" in text
+    assert text.index("Needs attention") < text.index("Chief complaint")
+    assert "Allergies: penicillin" in text
+
+
+def test_summary_without_flags_still_returns_both_fields(client, monkeypatch):
+    fake_gemini(monkeypatch, json.dumps({**SUMMARY_JSON, "needs_attention": []}))
+    body = client.post("/api/summary", json=SUMMARY_LOG).json()
+    assert body["needs_attention"] == []
+    assert "attention" not in body["text"].lower()
+    assert "Allergies: penicillin" in body["text"]
+
+
+@pytest.mark.parametrize("reply", [
+    "not json at all",
+    json.dumps({"chief_complaint": "not asked"}),  # most fields missing
+    None,  # Gemini timed out or failed
+])
+def test_summary_falls_back_to_the_plain_note(client, monkeypatch, reply):
+    fake_gemini(monkeypatch, reply)
+    res = client.post("/api/summary", json=SUMMARY_LOG)
+    assert res.status_code == 200
+    body = res.json()
+    assert body["text"].startswith("Patient is Deaf and needs an ASL interpreter.\n\nConversation:")
+    assert "PATIENT: PENICILLIN" in body["text"]
+    assert body["needs_attention"] == []
 
 
 class FakeClock:

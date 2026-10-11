@@ -176,9 +176,29 @@ pip install -r requirements.txt
 cp .env.example .env   # then add your GEMINI_API_KEY
 ```
 
-The app works without a Gemini key: questions and answers pass through unchanged, and the answer mode is guessed from simple keywords.
+### Gemini key
 
-If Gemini is slower than 5 seconds or fails, the app uses the same offline fallback, so it never freezes. The server terminal logs every Gemini call (`Gemini answer ok in 0.84s`, or the reason it fell back). Before a demo, open http://localhost:8000/api/health to check that Gemini is working and every sign has samples.
+The key goes in a file called `.env` in the repo root. The server reads it when it starts.
+
+1. Copy the template: `cp .env.example .env`
+2. Open `.env` and put your key after `GEMINI_API_KEY=`, with no spaces or quotes.
+3. Restart the server.
+
+```
+GEMINI_API_KEY=your-key-here
+GEMINI_MODEL=gemini-flash-lite-latest
+GEMINI_TIMEOUT_SECONDS=10
+```
+
+`.env` is git-ignored, so it is never committed. Never put a real key in `.env.example`: that file is tracked, and the server doesn't read it.
+
+`GEMINI_MODEL` and `GEMINI_TIMEOUT_SECONDS` are optional, and default to `gemini-flash-latest` and 5 seconds. The two values above are the ones that worked when the prompts were tested (October 2026): the API rejected a 5-second deadline ("minimum allowed deadline is 10s"), and `gemini-flash-latest` timed out while `gemini-flash-lite-latest` answered in about half a second. If every call falls back, try them.
+
+To check the key, open http://localhost:8000/api/health: `gemini.key_set` should be `true`, and after one question `gemini.last_call.result` should be `"ok"`. Anything else there is the reason Gemini fell back.
+
+The app works without a Gemini key: questions and answers pass through unchanged, the answer mode is guessed from simple keywords, and the handoff summary is the plain transcript.
+
+If Gemini is slower than the timeout or fails, the app uses the same offline fallback, so it never freezes. The server terminal logs every Gemini call (`Gemini answer ok in 0.84s`, or the reason it fell back). Before a demo, open http://localhost:8000/api/health to check that Gemini is working and every sign has samples.
 
 ## Run
 
@@ -232,6 +252,25 @@ pytest
 ```
 
 The tests use fake hands and a temporary samples folder, so they need no camera, never call Gemini, and never touch real recordings. Run them before you push.
+
+## Trying the Gemini prompts
+
+The tests never call Gemini, so the prompts in `server/llm.py` are checked with a separate script that uses the real key in `.env`:
+
+```bash
+python scripts/try_prompts.py | tee scripts/try_prompts_output.txt
+python scripts/try_prompts.py --pause 0     # no waiting, on a paid key
+```
+
+It sends 12 medic questions, 10 signed answers and 3 full conversations through `simplify`, `answer` and `summary`, and prints each input and output, the time taken, and whether the offline fallback was used. The last line counts how many calls Gemini answered.
+
+A free key allows about 20 requests a minute; after that Gemini answers 429 and the fallback runs. The script waits 4 seconds before each call to stay under that, so a run takes about 2 minutes.
+
+Run it after changing a prompt, read the output against these rules, and commit `scripts/try_prompts_output.txt` with the change:
+
+- **Questions:** at most 15 words, no medical jargon, and a mode the patient can answer in.
+- **Answers:** first person, one short sentence, nothing the patient didn't sign, spelled words unchanged.
+- **Summary:** only facts the patient confirmed, never a diagnosis, "not asked" for anything missing.
 
 ## Recording samples
 
@@ -292,7 +331,43 @@ Once a sign has been held steadily (0.5 s, or 1 s for control signs), the server
 | `DELETE /api/samples/{label}?signer=Name` | | `{"removed": 20}` |
 | `POST /api/simplify` | `{"text": "medic's words"}` | `{"text": "plain version", "mode": "yesno"}` |
 | `POST /api/answer` | `{"signs": ["8"], "mode": "number", "question": "..."}` | `{"text": "8 out of 10."}` |
-| `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note"}` |
+| `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note", "needs_attention": ["chest pain with trouble breathing"]}` |
+
+### Handoff summary
+
+`POST /api/summary` asks Gemini for JSON, and the server turns it into the note. Gemini's reply has these fields:
+
+```json
+{"chief_complaint": "chest pain",
+ "pain": {"level": "8", "location": "chest"},
+ "allergies": "not asked",
+ "medications": "denies taking any medication",
+ "other_answers": ["trouble breathing"],
+ "needs_attention": ["chest pain", "trouble breathing"]}
+```
+
+The route returns the note as `text`, which the web page shows, plus the `needs_attention` list on its own:
+
+```
+Patient is Deaf and needs an ASL interpreter.
+
+Needs attention (the patient's own answers, not a diagnosis):
+- Flagged for attention: chest pain
+- Flagged for attention: trouble breathing
+
+Chief complaint: chest pain
+Pain level: 8 out of 10
+Pain location: chest
+Allergies: not asked
+Medications: denies taking any medication
+Other answers:
+- trouble breathing
+```
+
+- The first line is always the same. The "Needs attention" section only appears when the list isn't empty.
+- `needs_attention` holds answers a clinician should look at first. They restate what the patient confirmed; they are never a diagnosis, a triage level or medical advice.
+- Every field uses only what the patient confirmed, and "not asked" for anything the conversation didn't cover.
+- With no key, a timeout, an error, or JSON that is invalid or missing a field, `text` is the first line followed by the plain transcript, and `needs_attention` is `[]`.
 
 ## Team
 
