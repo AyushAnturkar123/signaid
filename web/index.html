@@ -58,7 +58,7 @@
 
     <section id="camera" class="camera">
       <!-- Above the video, so it's on screen without scrolling on a laptop -->
-      <p id="step-status" aria-live="polite">Sign your answer, then lower your hand</p>
+      <p id="step-status">Sign your answer, then sign DONE to send it</p>
       <div class="frame">
         <!-- Mirrored with CSS only, so it feels like a mirror to the signer -->
         <video id="video" playsinline muted></video>
@@ -119,7 +119,6 @@
   <!-- Sticks to the bottom of the window, so the patient sees it wherever the page is scrolled -->
   <div id="alerts">
     <p id="spoken-banner" hidden></p>
-    <p id="confirm-prompt" aria-live="polite" hidden></p>
   </div>
 
   <dialog id="guide-dialog">

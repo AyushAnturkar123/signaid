@@ -5,7 +5,7 @@ export const CONTROL_GUIDE = [
   {
     label: "DONE",
     icon: "🖐️🖐️",
-    does: "finish your answer",
+    does: "send your answer",
     how: "Both hands open, fingers spread, palms facing the camera, side by side",
   },
   {

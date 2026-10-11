@@ -1,6 +1,6 @@
 // Wires everything together and runs the conversation loop:
-// medic speaks -> simplified question + answer mode -> patient signs -> confirm -> spoken answer.
-// The patient never touches the computer: they answer, confirm and correct by signing.
+// medic speaks -> simplified question + answer mode -> patient signs -> DONE -> spoken answer.
+// The patient never touches the computer: they answer, correct and send by signing.
 
 import { api } from "./api.js";
 import { startCamera } from "./camera.js";
@@ -10,40 +10,25 @@ import { speak, speechSupported, startListening, stopListening } from "./speech.
 import { flashNewQuestion, showSpoken } from "./ui/alerts.js";
 import { renderControlGuide } from "./ui/control-guide.js";
 import { setupFullscreen } from "./ui/fullscreen.js";
-import { renderStep } from "./ui/step.js";
 
 const $ = (id) => document.getElementById(id);
 const SEND_INTERVAL_MS = 66; // ~15 frames a second to the classifier
 const MODE_NAMES = { yesno: "Yes / No", number: "Number", spelling: "Spelling", free: "Free" };
 const INTRO = "I'm Deaf. Please speak to me, and I'll answer with signs.";
-const LOWERED_HAND_MS = 1500; // hand out of view this long = "I'm done answering"
-const CONFIRM_MODE = "yesno"; // while confirming, the classifier only listens for YES and NO
 
-// step: "answering" (signs build the answer) or "confirming" (YES sends it, NO clears it).
 // scanning: recognition is on. It starts off, so testing or setting up never adds signs by accident.
-const state = { mode: "free", step: "answering", question: "", answer: [], log: [], hands: [], modes: {}, scanning: false };
+const state = { mode: "free", question: "", answer: [], log: [], hands: [], modes: {}, scanning: false };
 let sendToServer = () => {};
 let lastSent = 0;
 let recorder = { isLeftHanded: () => false };
-let handSeenAt = 0;
-let answerChangedAt = 0;
-// The YES or NO that just ended the confirm step. Leaving that step changes the mode sent to the
-// server, which resets its smoother, so the sign still being held comes back once more.
-let confirmEcho = null;
 
 function answerText() {
   return state.mode === "spelling" ? state.answer.join("") : state.answer.join(" ");
 }
 
-function setStep(step) {
-  state.step = step;
-  renderStep(step, answerText());
-}
-
 function setMode(mode) {
   state.mode = mode;
   state.answer = [];
-  setStep("answering");
   for (const btn of $("mode-buttons").children) btn.classList.toggle("active", btn.dataset.mode === mode);
   renderQuickReplies();
   renderAnswer();
@@ -64,26 +49,22 @@ function renderQuickReplies() {
 function renderAnswer() {
   $("answer").textContent = answerText() || "—";
   $("send-btn").disabled = state.answer.length === 0;
-  answerChangedAt = performance.now();
 }
 
 function clearAnswer() {
   state.answer = [];
-  setStep("answering");
   renderAnswer();
 }
 
 function removeLastSign() {
   state.answer.pop();
-  setStep("answering");
   renderAnswer();
 }
 
 // Control signs work in every mode and are never added to the answer.
+// DONE sends the answer straight away; CLEAR and DELETE are for corrections before that.
 const CONTROLS = {
-  DONE: () => {
-    if (state.answer.length) setStep("confirming");
-  },
+  DONE: sendAnswer,
   CLEAR: clearAnswer,
   DELETE: removeLastSign,
 };
@@ -103,11 +84,6 @@ function addLog(role, text) {
 
 function addSign(label) {
   if (CONTROLS[label]) return CONTROLS[label]();
-  if (state.step === "confirming") {
-    if (label === "YES") sendAnswer();
-    else if (label === "NO") clearAnswer();
-    return;
-  }
   // Yes/No and Number questions take a single answer; the latest sign replaces the previous one.
   if (state.mode === "yesno" || state.mode === "number") state.answer = [label];
   else state.answer.push(label);
@@ -116,21 +92,11 @@ function addSign(label) {
 
 function onHands(hands) {
   state.hands = hands;
-  const now = performance.now();
-  if (hands.length) handSeenAt = now;
-  else confirmEcho = null;
   if (!state.scanning) return; // hands are still tracked (the recorder needs them), just not recognized
+  const now = performance.now();
   if (now - lastSent < SEND_INTERVAL_MS) return;
   lastSent = now;
-  const mode = state.step === "confirming" ? CONFIRM_MODE : state.mode;
-  sendToServer({ type: "landmarks", mode, hands, left_handed: recorder.isLeftHanded() });
-}
-
-// The patient lowering their hand after answering moves on to the confirm step.
-function checkLoweredHand() {
-  if (!state.scanning || state.step !== "answering" || !state.answer.length || state.hands.length) return;
-  if (!$("recorder").hidden) return; // hands come and go while recording samples
-  if (performance.now() - Math.max(handSeenAt, answerChangedAt) >= LOWERED_HAND_MS) setStep("confirming");
+  sendToServer({ type: "landmarks", mode: state.mode, hands, left_handed: recorder.isLeftHanded() });
 }
 
 const PAUSED_TEXT = "Paused · press Start scanning";
@@ -140,8 +106,7 @@ function setScanning(on) {
   const btn = $("scan-btn");
   btn.setAttribute("aria-pressed", String(on));
   btn.textContent = on ? "⏸ Pause scanning" : "▶ Start scanning";
-  if (on) handSeenAt = performance.now(); // don't jump straight to confirming on resume
-  else $("live").textContent = PAUSED_TEXT;
+  if (!on) $("live").textContent = PAUSED_TEXT;
 }
 
 function onServerMessage(msg) {
@@ -154,10 +119,7 @@ function onServerMessage(msg) {
     if (msg.distance != null) text += ` · dist ${msg.distance}`;
     $("live").textContent = text;
   } else if (msg.type === "sign") {
-    const echo = msg.label === confirmEcho;
-    const confirms = state.step === "confirming" && (msg.label === "YES" || msg.label === "NO");
-    confirmEcho = confirms ? msg.label : null;
-    if (!echo) addSign(msg.label);
+    addSign(msg.label);
   }
 }
 
@@ -185,7 +147,7 @@ function say(text) {
 async function sendAnswer() {
   if (!state.answer.length) return;
   const { answer: signs, mode, question } = state;
-  setMode("free"); // back to answering right away, so a second YES can't send it twice
+  setMode("free"); // clear the answer right away, so a second DONE can't send it twice
   let text;
   try {
     ({ text } = await api.answer(signs, mode, question));
@@ -235,7 +197,6 @@ async function start() {
     $("mic-btn").disabled = true;
   }
   setMic(true);
-  setInterval(checkLoweredHand, 200);
 
   addLog("patient", INTRO);
   say(INTRO);

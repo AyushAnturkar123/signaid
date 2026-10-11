@@ -97,7 +97,7 @@ The patient controls the app with three signs, so they never need to touch it. T
 
 | Sign | Hold this | What it does |
 |---|---|---|
-| DONE | Both hands open, fingers spread, palms facing the camera, side by side | Finish and confirm the answer |
+| DONE | Both hands open, fingers spread, palms facing the camera, side by side | Send the answer: it's spoken to the medic right away |
 | CLEAR | Both fists side by side, thumbs pointing down | Empty the answer |
 | DELETE | Both index fingers pointing left, side by side | Remove the last sign |
 
@@ -146,7 +146,6 @@ web/                    Frontend (plain HTML/CSS/JS, no build step)
   recorder.js           "Record signs" panel
   api.js                HTTP calls to the server
   ui/                   on-screen pieces of the hands-free flow
-    step.js             status line and "Sign YES to send" confirm prompt
     alerts.js           "New question" flash, "Said to medic" banner
     control-guide.js    DONE / CLEAR / DELETE guide next to the camera
 ```

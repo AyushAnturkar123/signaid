@@ -1,6 +1,6 @@
 // Full-screen camera, with a caption bar at the bottom that is only shown in full screen.
 // Everything outside the camera is hidden in full screen, so the bar repeats what the patient
-// needs: what the medic said, what they've signed so far, and the confirm prompt.
+// needs: what the medic said and what they've signed so far.
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,13 +13,8 @@ function updateBar() {
   const question = text($("question"));
   $("fs-medic").textContent = heard || question;
 
-  const confirm = $("confirm-prompt");
-  const confirming = !confirm.hidden && text(confirm);
   const answer = text($("answer"));
-  $("fs-patient").textContent = confirming
-    ? text(confirm)
-    : `You signed: ${answer && answer !== "—" ? answer : "…"}`;
-  $("fs-patient").classList.toggle("confirming", Boolean(confirming));
+  $("fs-patient").textContent = `You signed: ${answer && answer !== "—" ? answer : "…"}`;
 }
 
 export function setupFullscreen() {
@@ -38,8 +33,8 @@ export function setupFullscreen() {
   });
 
   // Keep the bar in sync with the rest of the page without touching main.js's logic.
-  const watch = { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["hidden"] };
+  const watch = { childList: true, characterData: true, subtree: true };
   const observer = new MutationObserver(updateBar);
-  for (const id of ["heard", "question", "answer", "confirm-prompt"]) observer.observe($(id), watch);
+  for (const id of ["heard", "question", "answer"]) observer.observe($(id), watch);
   updateBar();
 }
