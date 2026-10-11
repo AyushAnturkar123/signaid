@@ -173,7 +173,8 @@ def answer(body: AnswerIn):
 
 @app.post("/api/summary")
 def summary(body: SummaryIn):
-    return {"text": llm.summary([e.model_dump() for e in body.log])}
+    # {"text": handoff note, "needs_attention": [...]}; the web page shows "text".
+    return llm.summary_details([e.model_dump() for e in body.log])
 
 
 class NoCacheStaticFiles(StaticFiles):
