@@ -79,7 +79,7 @@ def test_controls_route(client):
 
 def test_modes_route_has_no_controls(client):
     modes = client.get("/api/modes").json()
-    assert set(modes) == {"yesno", "number", "spelling", "free"}
+    assert set(modes) == {"yesno", "number", "spelling", "free", "location"}
     assert not any(c in labels for labels in modes.values() for c in CONTROLS)
 
 

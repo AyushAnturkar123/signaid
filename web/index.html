@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- viewport-fit=cover: use the whole screen on phones with a notch (see env(safe-area-inset-*) in the CSS) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>SignAid</title>
+  <!-- Lets a phone add SignAid to the home screen and open it like an app, with no browser bars -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#17794b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SignAid">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <!-- A typeface designed for maximum legibility. Falls back to the system font offline. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

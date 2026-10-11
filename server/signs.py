@@ -7,6 +7,8 @@ MODES = {
     "spelling": list("ABCDEFGHIKLMNOPQRSTUVWXY"),
     # YES and NO are here too, so the patient can answer yes or no at any time.
     "free": ["YES", "NO", "PAIN", "HELP", "WATER", "FOOD", "BATHROOM", "COLD", "STOP", "PHONE"],
+    # Where the pain is. Two-hand gestures made up for SignAid, not ASL signs.
+    "location": ["CHEST", "HEAD", "LEGS"],
 }
 
 # Control signs work in every mode, so the patient can run the app without touching it.

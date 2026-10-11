@@ -23,6 +23,9 @@ The classifier only compares against the signs for the current mode. This avoids
 | **Number** | Medic asks for a pain score | 1–10 |
 | **Spelling** | Patient spells a name, allergy or medication | A–Z except J and Z (on-screen keyboard for those) |
 | **Free** | Patient starts saying something themselves | YES, NO, and the 8 medical signs below |
+| **Pain location** | Patient shows where the pain is | CHEST, HEAD, LEGS |
+
+Gemini doesn't pick Pain location yet: switch to it with the on-screen mode button.
 
 ### No movement
 
@@ -91,6 +94,18 @@ YES and NO are also in Free mode, so the patient can answer yes or no at any tim
 
 Every free-mode sign has a different handshape, so recognition doesn't need face tracking for location.
 
+### Pain location mode
+
+Three two-hand gestures for where the pain is. They are made up for SignAid, not ASL signs, so the medic and patient need the guide.
+
+| Sign | Hold this |
+|---|---|
+| CHEST | Arms crossed into an X |
+| HEAD | Both hands flat, held high |
+| LEGS | Both hands with the fingers facing outward |
+
+No samples are recorded yet, so none of the three is recognized until the team records them in **Record signs** (group "Pain location"). HEAD (both hands flat) is close to DONE (both hands open, palms to the camera), and the control signs are listened for in every mode, so run `python scripts/evaluate.py --mode location` after recording to check they don't clash.
+
 ### Control signs
 
 The patient controls the app with three signs, so they never need to touch it. They work in **every mode**, and must be held for **1 second** (answer signs need 0.5 s), so they don't fire by accident.
@@ -148,6 +163,8 @@ web/                    Frontend (plain HTML/CSS/JS, no build step)
   ui/                   on-screen pieces of the hands-free flow
     alerts.js           "New question" flash, "Said to medic" banner
     control-guide.js    DONE / CLEAR / DELETE guide next to the camera
+    phone.js            keeps a phone's screen awake
+  manifest.json, icons/ lets a phone add SignAid to its home screen
 ```
 
 ## Setup
@@ -171,6 +188,41 @@ uvicorn server.main:app --reload
 ```
 
 Open http://localhost:8000 in **Chrome** and click Start. Allow camera and microphone access. If speech recognition struggles, type the medic's words in the box under the question.
+
+## Using it on a phone
+
+SignAid runs in the phone's browser and can be added to the home screen, where it opens like an app: its own icon, no browser bars, and the screen stays awake. The Python server still runs on a laptop; the phone is the camera, microphone and screen.
+
+On a phone the page is one column: the medic's question, the camera, what you signed, then the guides. **Full screen** on the camera shows just the video with the question and your answer underneath.
+
+A phone only allows the camera and microphone on an **https** address (or `localhost`), so opening `http://<laptop-ip>:8000` over Wi-Fi does not work. Two ways around that:
+
+**Android, by USB cable (nothing is public)**
+
+1. Start the server on the laptop as usual.
+2. Plug the phone in, turn on USB debugging, and open `chrome://inspect/#devices` in Chrome on the laptop.
+3. Click **Port forwarding**, add port `8000` -> `localhost:8000`, and tick **Enable port forwarding**.
+4. Open `http://localhost:8000` in Chrome on the phone.
+
+**Any phone, with an https tunnel**
+
+```bash
+uvicorn server.main:app --reload            # terminal 1
+cloudflared tunnel --url http://localhost:8000   # terminal 2, prints an https://....trycloudflare.com address
+```
+
+Open that https address on the phone. While the tunnel is running, anyone who has the address can use the app, including your Gemini key and the "Record signs" panel, so stop it (Ctrl+C) when you're done and don't share the address.
+
+**Add it to the home screen**
+
+- Android (Chrome): menu -> **Add to Home screen** (or **Install app**).
+- iPhone (Safari): Share -> **Add to Home Screen**.
+
+Notes:
+
+- Use Chrome on Android. On an iPhone, speech recognition is less reliable; the "type what the medic said" box always works.
+- Prop the phone upright, far enough back that both hands fit in the picture.
+- It is a web app, not an App Store or Play Store app.
 
 ## Tests
 
