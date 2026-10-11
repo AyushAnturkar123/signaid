@@ -21,16 +21,26 @@ export function setupFullscreen() {
   const camera = $("camera");
   const btn = $("fullscreen-btn");
 
-  btn.addEventListener("click", () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else camera.requestFullscreen().catch(() => {});
-  });
-  document.addEventListener("fullscreenchange", () => {
-    const on = document.fullscreenElement === camera;
+  function show(on) {
     btn.textContent = on ? "✕ Exit full screen" : "⛶ Full screen";
     btn.setAttribute("aria-pressed", String(on));
     if (on) updateBar();
-  });
+  }
+
+  if (camera.requestFullscreen) {
+    btn.addEventListener("click", () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else camera.requestFullscreen().catch(() => {});
+    });
+    document.addEventListener("fullscreenchange", () => show(document.fullscreenElement === camera));
+  } else {
+    // iPhones can't put an element in real full screen, so the camera covers the page instead.
+    btn.addEventListener("click", () => {
+      const on = camera.classList.toggle("fullscreen");
+      document.body.classList.toggle("camera-fullscreen", on);
+      show(on);
+    });
+  }
 
   // Keep the bar in sync with the rest of the page without touching main.js's logic.
   const watch = { childList: true, characterData: true, subtree: true };

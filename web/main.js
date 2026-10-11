@@ -10,10 +10,11 @@ import { speak, speechSupported, startListening, stopListening } from "./speech.
 import { flashNewQuestion, showSpoken } from "./ui/alerts.js";
 import { renderControlGuide } from "./ui/control-guide.js";
 import { setupFullscreen } from "./ui/fullscreen.js";
+import { setupPhone } from "./ui/phone.js";
 
 const $ = (id) => document.getElementById(id);
 const SEND_INTERVAL_MS = 66; // ~15 frames a second to the classifier
-const MODE_NAMES = { yesno: "Yes / No", number: "Number", spelling: "Spelling", free: "Free" };
+const MODE_NAMES = { yesno: "Yes / No", number: "Number", spelling: "Spelling", free: "Free", location: "Pain location" };
 const INTRO = "I'm Deaf. Please speak to me, and I'll answer with signs.";
 
 // scanning: recognition is on. It starts off, so testing or setting up never adds signs by accident.
@@ -205,6 +206,7 @@ function buildModeButtons(modes) {
 
 async function start() {
   $("start-screen").hidden = true;
+  setupPhone();
   const modes = await api.modes();
   state.modes = modes;
   buildModeButtons(modes);
