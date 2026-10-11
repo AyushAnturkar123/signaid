@@ -204,3 +204,11 @@ def test_websocket_skips_malformed_frame(client):
         ws.send_json({"type": "landmarks", "mode": "yesno", "hands": [make_hand(1)]})
         # the bad frame gets no reply; the connection stays open for the good one
         assert ws.receive_json()["label"] == "YES"
+
+
+def test_follow_up_route(client):
+    log = [{"role": "medic", "text": "What's wrong?"}, {"role": "patient", "text": "I have pain."}]
+    assert client.post("/api/follow-up", json={"log": log}).json() == {
+        "question": "How bad is your pain, 1 to 10?", "mode": "number"}
+    log.append({"role": "medic", "text": "Okay."})
+    assert client.post("/api/follow-up", json={"log": log}).json() == {"question": None, "mode": None}

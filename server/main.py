@@ -171,6 +171,12 @@ def answer(body: AnswerIn):
     return {"text": llm.answer(body.signs, body.mode, body.question)}
 
 
+@app.post("/api/follow-up")
+def follow_up(body: SummaryIn):
+    """After the patient answers: one follow-up question and its answer mode, or nulls."""
+    return llm.follow_up([e.model_dump() for e in body.log])
+
+
 @app.post("/api/summary")
 def summary(body: SummaryIn):
     # {"text": handoff note, "needs_attention": [...]}; the web page shows "text".

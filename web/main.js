@@ -75,7 +75,7 @@ function addLog(role, text) {
   item.className = role;
   const who = document.createElement("span");
   who.className = "role";
-  who.textContent = role === "medic" ? "Medic:" : "Patient:";
+  who.textContent = { medic: "Medic:", signaid: "SignAid:" }[role] ?? "Patient:";
   item.append(who, text);
   $("log").append(item);
   // Scroll the list only, never the page: the question and camera must stay in view.
@@ -123,19 +123,40 @@ function onServerMessage(msg) {
   }
 }
 
+function showQuestion(text, from) {
+  state.question = text;
+  $("question").textContent = text;
+  $("question-from").textContent = from === "signaid" ? "SignAid asks" : "Medic said";
+  flashNewQuestion();
+}
+
 async function onMedicSpeech(text) {
   addLog("medic", text);
   $("heard").textContent = "";
   try {
     const { text: plain, mode } = await api.simplify(text);
-    state.question = plain;
-    $("question").textContent = plain;
+    showQuestion(plain, "medic");
     setMode(mode);
   } catch (e) {
-    state.question = text;
-    $("question").textContent = text;
+    showQuestion(text, "medic");
   }
-  flashNewQuestion();
+}
+
+// After an answer, SignAid may ask one short follow-up (e.g. PAIN -> "How bad is your pain,
+// 1 to 10?") and switch to the tab the patient answers in. The server stops after 3 in a row.
+async function askFollowUp() {
+  let next;
+  try {
+    next = await api.followUp(state.log);
+  } catch {
+    return;
+  }
+  if (!next.question) return;
+  // A medic question that arrived while we waited takes priority.
+  if (state.log.at(-1)?.role !== "patient") return;
+  addLog("signaid", next.question);
+  showQuestion(next.question, "signaid");
+  setMode(next.mode);
 }
 
 // Everything the app says out loud is also shown on screen.
@@ -155,7 +176,8 @@ async function sendAnswer() {
     text = signs.join(" ");
   }
   addLog("patient", text);
-  await say(text);
+  // Side by side: a follow-up must not wait on speech, which sometimes never reports finishing.
+  await Promise.all([say(text), askFollowUp()]);
 }
 
 async function showSummary() {

@@ -23,4 +23,5 @@ export const api = {
   simplify: (text) => request("POST", "/api/simplify", { text }),
   answer: (signs, mode, question) => request("POST", "/api/answer", { signs, mode, question }),
   summary: (log) => request("POST", "/api/summary", { log }),
+  followUp: (log) => request("POST", "/api/follow-up", { log }),
 };

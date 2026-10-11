@@ -1,0 +1,71 @@
+Gemini follow_up: error: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to in 0.11s, using offline fallback
+Model: gemini-flash-lite-latest   App timeout: 5.0s
+
+== Patient signs PAIN
+   Patient: I have pain.
+   SignAid asks [number]: How bad is the pain from 1 to 10?  [ok, 1.13s]
+   Patient: My pain is 8 out of 10.
+   SignAid asks [yesno]: Is the pain in your chest?  [ok, 0.47s]
+   Patient: Yes.
+   SignAid asks [yesno]: Did the pain start suddenly?  [ok, 0.54s]
+   Patient: Yes.
+   (stops)  [ok, 0.54s]
+   ok
+
+== Pain with level already given
+   Medic: How bad is your pain, 1 to 10?
+   Patient: My pain is 7 out of 10.
+   SignAid asks [yesno]: Is the pain in your chest?  [ok, 0.51s]
+   Patient: No.
+   (stops)  [ok, 0.38s]
+   ok
+
+== Yes to allergies
+   Medic: Any allergies?
+   Patient: Yes.
+   SignAid asks [spelling]: What are you allergic to?  [ok, 0.68s]
+   Patient: PENICILLIN
+   (stops)  [ok, 0.52s]
+   ok
+
+== Yes to medication
+   Medic: Do you take any medication?
+   Patient: Yes.
+   SignAid asks [spelling]: What medication do you take?  [ok, 0.53s]
+   Patient: INSULIN
+   (stops)  [ok, 0.54s]
+   ok
+
+== Patient signs HELP
+   Patient: I need help.
+   SignAid asks [free]: What do you need help with?  [ok, 0.51s]
+   Patient: I have pain.
+   SignAid asks [number]: How bad is the pain from 1 to 10?  [ok, 0.42s]
+   Patient: My pain is 6 out of 10.
+   SignAid asks [yesno]: Is the pain in your chest?  [ok, 0.52s]
+   ok
+
+== No to a yes/no question
+   Medic: Are you dizzy?
+   Patient: I am not dizzy.
+   (stops)  [ok, 0.38s]
+   ok
+
+== Name spelled
+   Medic: What is your name?
+   Patient: My name is Maria.
+   (stops)  [ok, 0.58s]
+   ok
+
+== Only the opening line
+   (stops)  [ok, 0.41s]
+   ok
+
+== Pain and water together
+   Patient: I have pain and I need water.
+   SignAid asks [number]: How bad is the pain from 1 to 10?  [ok, 0.51s]
+   Patient: My pain is 9 out of 10.
+   (stops)  [error: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to, 0.11s]
+   !! Gemini error: ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to
+
+8/9 scenarios passed every check.

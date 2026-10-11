@@ -450,6 +450,7 @@ main {
 #log .role { font-weight: 700; margin-right: 6px; }
 #log .medic .role { color: var(--medic); }
 #log .patient .role { color: var(--accent); }
+#log .signaid .role { color: var(--accent-bright); }
 
 /* ---------- Record signs panel ---------- */
 

@@ -230,6 +230,23 @@ Samples are saved to `server/data/samples/<your-name>.json`. Commit your file so
 
 The live label in the camera view shows the distance to the closest sample. If real signs show as "Not a known sign", raise `MAX_DISTANCE` in `server/classifier.py`. If random poses get recognized, lower it.
 
+## Follow-up questions
+
+After the patient answers, SignAid can ask **one short follow-up** on screen and switch to the tab the patient answers in. For example, the patient signs PAIN and DONE, and SignAid asks "How bad is your pain, 1 to 10?" in Number mode, then "Is the pain in your chest?" in Yes/No mode.
+
+- The question card shows **"SignAid asks"** instead of "Medic said", and the log shows **SignAid:**. Follow-ups are included in the handoff summary.
+- **At most 3 follow-ups in a row**, then SignAid waits for the medic. A new medic question always takes over.
+- Never a diagnosis, cause or advice, and never the same question twice.
+- **Offline fallback** (no key, timeout or rate limit): after PAIN it asks for the pain level, and otherwise asks nothing.
+
+Try it with the real key (it checks the mode, length, repeats and diagnosis words):
+
+```bash
+python scripts/try_followups.py
+```
+
+The free Gemini tier has a **per-minute limit**. Running many calls back to back returns error 429 and the app uses the offline fallback for a minute. Avoid heavy testing right before a demo.
+
 ## Evaluating the classifier
 
 ```bash
@@ -279,6 +296,7 @@ Once a sign has been held steadily (0.5 s, or 1 s for control signs), the server
 | `DELETE /api/samples/{label}?signer=Name` | | `{"removed": 20}` |
 | `POST /api/simplify` | `{"text": "medic's words"}` | `{"text": "plain version", "mode": "yesno"}` |
 | `POST /api/answer` | `{"signs": ["8"], "mode": "number", "question": "..."}` | `{"text": "8 out of 10."}` |
+| `POST /api/follow-up` | `{"log": [...]}` (same as summary) | `{"question": "How bad is your pain, 1 to 10?", "mode": "number"}`, or both `null` |
 | `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note", "needs_attention": ["chest pain with trouble breathing"]}` |
 
 ### Handoff summary

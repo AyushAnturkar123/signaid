@@ -181,7 +181,8 @@ def answer(signs, mode, question=""):
 
 
 SUMMARY_SYSTEM = """Fill in a handoff note for emergency room staff from a conversation
-between a medic and a Deaf patient who answers in signs.
+between a medic and a Deaf patient who answers in signs. Some questions come from SIGNAID, the
+app asking short follow-up questions; treat them exactly like the medic's questions.
 
 Reply only with JSON in exactly this shape:
 {"chief_complaint": "...",
@@ -285,3 +286,92 @@ def summary_details(log_entries):
 def summary(log_entries):
     """Conversation log [{"role": "medic"|"patient", "text": ...}] -> handoff note."""
     return summary_details(log_entries)["text"]
+
+
+# --- Follow-up questions -------------------------------------------------------------------
+# After the patient answers, SignAid can ask one short follow-up on screen (e.g. PAIN -> "How bad
+# is your pain, 1 to 10?" in Number mode). They're logged with role "signaid".
+
+FOLLOW_UP_ROLE = "signaid"
+# Then SignAid stops and waits for the medic, so it never turns into an endless interview.
+MAX_FOLLOW_UPS = 3
+
+FOLLOW_UP_SYSTEM = f"""You are SignAid, an app that helps a Deaf patient talk with a medic in a
+medical emergency. The patient answers only with hand signs. Questions come from the MEDIC or
+from you (SIGNAID). After the patient's latest answer, decide whether ONE short follow-up
+question would fill in a missing detail about what the patient just said.
+
+Follow up on the patient's problem one detail at a time, for example:
+- pain: how bad it is (1 to 10), then where it is (a yes/no question about one body part, such as
+  "Is the pain in your chest?"), then "Did it start suddenly?"
+- yes to having allergies: "What are you allergic to?"
+- yes to taking medication: "What medication do you take?"
+- HELP: "What do you need help with?"
+
+Rules:
+- Ask only about the patient's latest answer. Never repeat or rephrase a question that is already
+  in the conversation, and never ask for a detail the patient already gave.
+- At most 12 words, plain everyday words.
+- Never diagnose, suggest a cause, give advice or tell anyone what to do.
+- If nothing important is missing, or the latest answer leaves nothing to follow up on (such as
+  "No." to a yes/no question, or the patient's opening line about being Deaf), reply with null.
+
+Choose how the patient can answer:
+- "yesno": the answer is yes or no.
+- "number": the answer is a number from 1 to 10.
+- "free": the answer is one of these signs: {_FREE_SIGNS}.
+- "spelling": the answer is any other word, spelled letter by letter.
+
+Reply only with JSON: {{"question": "...", "mode": "..."}} or {{"question": null, "mode": null}}"""
+
+PAIN_LEVEL_QUESTION = re.compile(r"1 to 10|how bad|how much pain|pain level|rate", re.I)
+NO_FOLLOW_UP = {"question": None, "mode": None}
+
+
+def _questions(log_entries):
+    return [e["text"] for e in log_entries if e["role"] != "patient"]
+
+
+def _follow_ups_in_a_row(log_entries):
+    count = 0
+    for e in reversed(log_entries):
+        if e["role"] == "medic":
+            break
+        if e["role"] == FOLLOW_UP_ROLE:
+            count += 1
+    return count
+
+
+def _fallback_follow_up(log_entries):
+    """Without Gemini: the one follow-up that matters most, the pain level after pain."""
+    if re.search(r"\bpain\b", log_entries[-1]["text"], re.I) and not any(
+        PAIN_LEVEL_QUESTION.search(q) for q in _questions(log_entries)
+    ):
+        return {"question": "How bad is your pain, 1 to 10?", "mode": "number"}
+    return NO_FOLLOW_UP
+
+
+def follow_up(log_entries):
+    """Conversation log -> {"question": str, "mode": str}, or both None when no follow-up is needed."""
+    if not log_entries or log_entries[-1]["role"] != "patient":
+        return NO_FOLLOW_UP
+    if _follow_ups_in_a_row(log_entries) >= MAX_FOLLOW_UPS:
+        return NO_FOLLOW_UP
+    transcript = "\n".join(f"{e['role'].upper()}: {e['text']}" for e in log_entries)
+    reply = _gemini(FOLLOW_UP_SYSTEM, transcript, json_output=True, task="follow_up")
+    if reply:
+        try:
+            data = json.loads(reply)
+            question, mode = data.get("question"), data.get("mode")
+            if question is None:
+                return NO_FOLLOW_UP
+            question = str(question).strip()
+            asked = {q.strip().lower() for q in _questions(log_entries)}
+            if question.lower() in asked:
+                return NO_FOLLOW_UP  # never ask the same thing twice
+            if question and mode in MODES:
+                return {"question": question, "mode": mode}
+        except (json.JSONDecodeError, AttributeError):
+            pass
+        log.warning("Gemini returned an invalid follow-up: %r", reply)
+    return _fallback_follow_up(log_entries)

@@ -233,3 +233,62 @@ def test_http_deadline_meets_geminis_minimum(monkeypatch):
     assert llm._http_timeout_ms() == 10_000
     monkeypatch.setattr(llm, "TIMEOUT_SECONDS", 15)
     assert llm._http_timeout_ms() == 15_000
+
+
+# --- Follow-up questions
+
+def turn(role, text):
+    return {"role": role, "text": text}
+
+
+def test_follow_up_fallback_asks_pain_level():
+    log = [turn("medic", "What's wrong?"), turn("patient", "I have pain.")]
+    assert llm.follow_up(log) == {"question": "How bad is your pain, 1 to 10?", "mode": "number"}
+
+
+def test_follow_up_fallback_skips_pain_level_already_asked():
+    log = [turn("medic", "How bad is the pain, 1 to 10?"), turn("patient", "I have pain, 8 out of 10.")]
+    assert llm.follow_up(log) == llm.NO_FOLLOW_UP
+
+
+def test_no_follow_up_after_a_question():
+    assert llm.follow_up([turn("patient", "I have pain."), turn("medic", "Where?")]) == llm.NO_FOLLOW_UP
+    assert llm.follow_up([]) == llm.NO_FOLLOW_UP
+
+
+def test_follow_ups_stop_after_three_in_a_row(monkeypatch):
+    calls = fake_gemini(monkeypatch, '{"question": "Did it start suddenly?", "mode": "yesno"}')
+    log = [turn("medic", "What's wrong?"), turn("patient", "I have pain.")]
+    for q in ["How bad?", "Is it your chest?", "Is it sharp?"]:
+        log += [turn("signaid", q), turn("patient", "Yes.")]
+    assert llm.follow_up(log) == llm.NO_FOLLOW_UP
+    assert calls == []  # stopped before asking Gemini
+    # A new medic question starts a fresh count.
+    log += [turn("medic", "Any allergies?"), turn("patient", "Yes.")]
+    assert llm.follow_up(log)["question"] == "Did it start suddenly?"
+
+
+def test_follow_up_uses_gemini(monkeypatch):
+    calls = fake_gemini(monkeypatch, '{"question": "Is the pain in your chest?", "mode": "yesno"}')
+    log = [turn("patient", "My pain is 8 out of 10.")]
+    assert llm.follow_up(log) == {"question": "Is the pain in your chest?", "mode": "yesno"}
+    assert calls[0]["task"] == "follow_up"
+    assert calls[0]["json_output"] is True
+    assert "PATIENT: My pain is 8 out of 10." in calls[0]["prompt"]
+
+
+def test_gemini_saying_no_follow_up_wins_over_fallback(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": null, "mode": null}')
+    assert llm.follow_up([turn("patient", "I have pain.")]) == llm.NO_FOLLOW_UP
+
+
+def test_repeated_follow_up_is_dropped(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": "Is the pain in your chest?", "mode": "yesno"}')
+    log = [turn("signaid", "Is the pain in your chest?"), turn("patient", "No.")]
+    assert llm.follow_up(log) == llm.NO_FOLLOW_UP
+
+
+@pytest.mark.parametrize("reply", ["not json", '{"question": "Where?", "mode": "banana"}', '["a list"]'])
+def test_bad_gemini_follow_up_uses_fallback(monkeypatch, reply):
+    fake_gemini(monkeypatch, reply)
+    assert llm.follow_up([turn("patient", "I have pain.")])["mode"] == "number"
