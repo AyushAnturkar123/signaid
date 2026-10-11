@@ -175,10 +175,13 @@ header {
 main {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); /* wider guide column */
+  /* The guide spans two rows, so "You signed" sits right under the camera however tall the guide is */
   grid-template-areas:
     "question question"
     "camera   guide"
-    "answer   log";
+    "answer   guide"
+    "log      log";
+  align-items: start;
   gap: 20px;
   padding: 20px;
   max-width: 1400px;
