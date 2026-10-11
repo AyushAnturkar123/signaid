@@ -88,6 +88,9 @@ def _record(task, result, seconds):
 
 # The signs the patient can answer with in Free mode, besides YES and NO.
 _FREE_SIGNS = ", ".join(sign for sign in MODES["free"] if sign not in MODES["yesno"])
+# Where the pain is: CHEST, HEAD, LEGS (two-hand gestures made up for SignAid).
+_LOCATION_SIGNS = ", ".join(MODES["location"])
+LOCATION_PHRASES = {"CHEST": "my chest", "HEAD": "my head", "LEGS": "my legs"}
 
 SIMPLIFY_SYSTEM = f"""You help a Deaf patient understand a medic during a medical emergency.
 
@@ -103,10 +106,12 @@ Go down this list and pick the first mode whose signs can give the answer:
 - "yesno": the answer is yes or no. This covers questions starting with "Any", "Do you",
   "Are you", "Did you" or "Is it", even when a yes would lead to a follow-up question.
 - "number": the answer is a number from 1 to 10, such as a pain level.
+- "location": the question asks where the pain or hurt is. The patient answers with one of
+  these signs: {_LOCATION_SIGNS}. For example "Where does it hurt?".
 - "free": the answer is one of these signs: {_FREE_SIGNS}. For example "What do you need?".
   Also use it for statements that need no answer.
 - "spelling": the answer needs any other word, which the patient spells letter by letter:
-  a name, a medication, an allergy, a body part, or what happened.
+  a name, a medication, an allergy, or what happened.
 
 Reply only with JSON: {{"text": "...", "mode": "..."}}"""
 
@@ -119,6 +124,8 @@ def _guess_mode(text):
     lower = text.lower()
     if re.search(r"\b(scale|rate|1 to 10|one to ten|how bad|how much pain)\b", lower):
         return "number"
+    if re.search(r"\bwhere\b", lower) and re.search(r"\b(pain|hurt|hurts|ache)\b", lower):
+        return "location"
     if re.search(r"\b(name|spell|allergic to what|what medication|which medication)\b", lower):
         return "spelling"
     if YESNO_START.match(lower.strip()):
@@ -160,6 +167,9 @@ How to read the signs depends on the answer mode:
   PAIN WATER is "I have pain and I need water."
   HELP BATHROOM is "I need help and I need the bathroom."
 
+- location: each sign is where the pain is: CHEST = my chest, HEAD = my head, LEGS = my legs.
+  CHEST is "The pain is in my chest." CHEST HEAD is "The pain is in my chest and my head."
+
 If the medic asked nothing, just say what the signs mean.
 Reply with the sentence only."""
 
@@ -171,6 +181,8 @@ def _fallback_answer(signs, mode):
         return f"{signs[-1]} out of 10."
     if mode == "yesno" and signs:
         return signs[-1].capitalize() + "."
+    if mode == "location" and signs:
+        return "The pain is in " + " and ".join(LOCATION_PHRASES.get(s, s.lower()) for s in signs) + "."
     return " ".join(signs).capitalize()
 
 
@@ -302,8 +314,8 @@ from you (SIGNAID). After the patient's latest answer, decide whether ONE short 
 question would fill in a missing detail about what the patient just said.
 
 Follow up on the patient's problem one detail at a time, for example:
-- pain: how bad it is (1 to 10), then where it is (a yes/no question about one body part, such as
-  "Is the pain in your chest?"), then "Did it start suddenly?"
+- pain: how bad it is (1 to 10), then "Where is the pain?" in "location" mode, then
+  "Did it start suddenly?"
 - yes to having allergies: "What are you allergic to?"
 - yes to taking medication: "What medication do you take?"
 - HELP: "What do you need help with?"
@@ -319,12 +331,16 @@ Rules:
 Choose how the patient can answer:
 - "yesno": the answer is yes or no.
 - "number": the answer is a number from 1 to 10.
+- "location": where the pain is, one of these signs: {_LOCATION_SIGNS}.
 - "free": the answer is one of these signs: {_FREE_SIGNS}.
 - "spelling": the answer is any other word, spelled letter by letter.
 
 Reply only with JSON: {{"question": "...", "mode": "..."}} or {{"question": null, "mode": null}}"""
 
 PAIN_LEVEL_QUESTION = re.compile(r"1 to 10|how bad|how much pain|pain level|rate", re.I)
+WHERE_QUESTION = re.compile(r"\bwhere\b", re.I)
+NEGATION = re.compile(r"\b(no|not|don't|do not|without|denies)\b", re.I)
+PAIN_LEVEL_GIVEN = re.compile(r"\b([1-9]|10) out of 10\b", re.I)
 NO_FOLLOW_UP = {"question": None, "mode": None}
 
 
@@ -342,13 +358,31 @@ def _follow_ups_in_a_row(log_entries):
     return count
 
 
-def _fallback_follow_up(log_entries):
-    """Without Gemini: the one follow-up that matters most, the pain level after pain."""
-    if re.search(r"\bpain\b", log_entries[-1]["text"], re.I) and not any(
-        PAIN_LEVEL_QUESTION.search(q) for q in _questions(log_entries)
+def _pain_follow_up(log_entries):
+    """The pain steps, always in this order: PAIN -> pain level (Number) -> where (Pain location).
+
+    A fixed rule rather than Gemini, so the order is guaranteed and it works offline.
+    """
+    questions = _questions(log_entries)
+    latest = log_entries[-1]["text"]
+    if (
+        re.search(r"\bpain\b", latest, re.I)
+        and not NEGATION.search(latest)  # "I do not have chest pain" isn't pain to ask about
+        and not PAIN_LEVEL_GIVEN.search(latest)  # the patient already gave the level
+        and not any(PAIN_LEVEL_QUESTION.search(q) for q in questions)
     ):
         return {"question": "How bad is your pain, 1 to 10?", "mode": "number"}
+    # Just answered the pain level, and nobody has asked where yet.
+    if questions and PAIN_LEVEL_QUESTION.search(questions[-1]) and not any(
+        WHERE_QUESTION.search(q) for q in questions
+    ):
+        return {"question": "Where is the pain?", "mode": "location"}
     return NO_FOLLOW_UP
+
+
+def _fallback_follow_up(log_entries):
+    """Without Gemini, only the pain steps are asked."""
+    return _pain_follow_up(log_entries)
 
 
 def follow_up(log_entries):
@@ -357,6 +391,9 @@ def follow_up(log_entries):
         return NO_FOLLOW_UP
     if _follow_ups_in_a_row(log_entries) >= MAX_FOLLOW_UPS:
         return NO_FOLLOW_UP
+    pain = _pain_follow_up(log_entries)
+    if pain["question"]:
+        return pain
     transcript = "\n".join(f"{e['role'].upper()}: {e['text']}" for e in log_entries)
     reply = _gemini(FOLLOW_UP_SYSTEM, transcript, json_output=True, task="follow_up")
     if reply:

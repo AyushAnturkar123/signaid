@@ -246,9 +246,43 @@ def test_follow_up_fallback_asks_pain_level():
     assert llm.follow_up(log) == {"question": "How bad is your pain, 1 to 10?", "mode": "number"}
 
 
-def test_follow_up_fallback_skips_pain_level_already_asked():
+def test_follow_up_fallback_asks_where_after_pain_level():
     log = [turn("medic", "How bad is the pain, 1 to 10?"), turn("patient", "I have pain, 8 out of 10.")]
+    assert llm.follow_up(log) == {"question": "Where is the pain?", "mode": "location"}
+
+
+def test_follow_up_fallback_stops_once_pain_location_is_known():
+    log = [
+        turn("patient", "I have pain."),
+        turn("signaid", "How bad is your pain, 1 to 10?"), turn("patient", "8 out of 10."),
+        turn("signaid", "Where is the pain?"), turn("patient", "The pain is in my chest."),
+    ]
     assert llm.follow_up(log) == llm.NO_FOLLOW_UP
+
+
+@pytest.mark.parametrize("text", ["Where does it hurt?", "Where is the pain?", "Where do you have pain?"])
+def test_guess_mode_where_pain_is_location(text):
+    assert llm._guess_mode(text) == "location"
+
+
+@pytest.mark.parametrize("signs, expected", [
+    (["CHEST"], "The pain is in my chest."),
+    (["HEAD", "LEGS"], "The pain is in my head and my legs."),
+])
+def test_answer_fallback_for_pain_location(signs, expected):
+    assert llm.answer(signs, "location") == expected
+
+
+def test_prompts_know_the_pain_location_signs():
+    for prompt in (llm.SIMPLIFY_SYSTEM, llm.FOLLOW_UP_SYSTEM):
+        assert '"location"' in prompt
+        assert "CHEST, HEAD, LEGS" in prompt
+    assert "CHEST = my chest" in llm.ANSWER_SYSTEM
+
+
+def test_follow_up_accepts_location_mode_from_gemini(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": "Where is the pain?", "mode": "location"}')
+    assert llm.follow_up([turn("patient", "My pain is 8 out of 10.")]) == {"question": "Where is the pain?", "mode": "location"}
 
 
 def test_no_follow_up_after_a_question():
@@ -277,9 +311,28 @@ def test_follow_up_uses_gemini(monkeypatch):
     assert "PATIENT: My pain is 8 out of 10." in calls[0]["prompt"]
 
 
-def test_gemini_saying_no_follow_up_wins_over_fallback(monkeypatch):
+def test_pain_steps_come_first_without_asking_gemini(monkeypatch):
+    calls = fake_gemini(monkeypatch, '{"question": "Where is the pain?", "mode": "location"}')
+    log = [turn("patient", "I have pain and I need water.")]
+    assert llm.follow_up(log) == {"question": "How bad is your pain, 1 to 10?", "mode": "number"}
+    log += [turn("signaid", "How bad is your pain, 1 to 10?"), turn("patient", "9 out of 10.")]
+    assert llm.follow_up(log) == {"question": "Where is the pain?", "mode": "location"}
+    assert calls == []  # the pain steps never wait on Gemini
+
+
+@pytest.mark.parametrize("text", [
+    "I do not have chest pain.",  # a NO to a pain question
+    "No pain.",
+    "My pain is 8 out of 10.",  # level already given
+])
+def test_no_pain_level_question_when_denied_or_already_given(monkeypatch, text):
     fake_gemini(monkeypatch, '{"question": null, "mode": null}')
-    assert llm.follow_up([turn("patient", "I have pain.")]) == llm.NO_FOLLOW_UP
+    assert llm.follow_up([turn("patient", text)]) == llm.NO_FOLLOW_UP
+
+
+def test_gemini_saying_no_follow_up_is_respected(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": null, "mode": null}')
+    assert llm.follow_up([turn("medic", "Are you cold?"), turn("patient", "Yes.")]) == llm.NO_FOLLOW_UP
 
 
 def test_repeated_follow_up_is_dropped(monkeypatch):
@@ -289,6 +342,7 @@ def test_repeated_follow_up_is_dropped(monkeypatch):
 
 
 @pytest.mark.parametrize("reply", ["not json", '{"question": "Where?", "mode": "banana"}', '["a list"]'])
-def test_bad_gemini_follow_up_uses_fallback(monkeypatch, reply):
+def test_bad_gemini_follow_up_uses_fallback(monkeypatch, reply, caplog):
     fake_gemini(monkeypatch, reply)
-    assert llm.follow_up([turn("patient", "I have pain.")])["mode"] == "number"
+    assert llm.follow_up([turn("medic", "Any allergies?"), turn("patient", "Yes.")]) == llm.NO_FOLLOW_UP
+    assert "invalid follow-up" in caplog.text
