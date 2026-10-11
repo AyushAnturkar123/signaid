@@ -358,6 +358,23 @@ main {
   height: auto;
 }
 
+/* Two-column layout: the guide fills its column down to the bottom of the answer panel. The chart
+   keeps its shape (it's already full width) and is centred on white, so no empty gap is left below. */
+@media (min-width: 801px) {
+  .guide {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+  #guide-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+  }
+  #guide-btn:hover { background: #ffffff; }
+}
+
 /* Control signs: always visible above the chart */
 #control-guide { margin-bottom: 20px; }
 #control-guide ul {
