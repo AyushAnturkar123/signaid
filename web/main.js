@@ -70,14 +70,30 @@ const CONTROLS = {
   DELETE: removeLastSign,
 };
 
+const ROLE_LABELS = { medic: "Medic", signaid: "SignAid", patient: "Patient signed" };
+
+function clockTime() {
+  return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 function addLog(role, text) {
   state.log.push({ role, text });
   const item = document.createElement("li");
   item.className = role;
-  const who = document.createElement("span");
-  who.className = "role";
-  who.textContent = { medic: "Medic:", signaid: "SignAid:" }[role] ?? "Patient:";
-  item.append(who, text);
+  const label = document.createElement("span");
+  label.className = "mono-label";
+  label.textContent = `${ROLE_LABELS[role] ?? role} · ${clockTime()}`;
+  const body = document.createElement("span");
+  body.className = "msg-text";
+  body.textContent = text;
+  item.append(label, body);
+  if (role === "patient") {
+    const play = document.createElement("button");
+    play.className = "play-btn";
+    play.innerHTML = '<svg width="18" height="18" aria-hidden="true"><use href="#i-speaker"/></svg>Play aloud';
+    play.addEventListener("click", () => say(text));
+    item.append(play);
+  }
   $("log").append(item);
   // Scroll the list only, never the page: the question and camera must stay in view.
   $("log").scrollTop = $("log").scrollHeight;
@@ -106,7 +122,7 @@ function setScanning(on) {
   state.scanning = on;
   const btn = $("scan-btn");
   btn.setAttribute("aria-pressed", String(on));
-  btn.textContent = on ? "⏸ Pause scanning" : "▶ Start scanning";
+  $("scan-label").textContent = on ? "Pause scanning" : "Start scanning";
   if (!on) $("live").textContent = PAUSED_TEXT;
 }
 
@@ -163,6 +179,7 @@ async function askFollowUp() {
 // Everything the app says out loud is also shown on screen.
 function say(text) {
   showSpoken(text);
+  $("last-spoken").textContent = `Spoken: “${text}”`;
   return speak(text);
 }
 
@@ -181,16 +198,52 @@ async function sendAnswer() {
   await Promise.all([say(text), askFollowUp()]);
 }
 
+// The Handoff summary card. Only on request: Gemini's free tier has a per-minute limit.
 async function showSummary() {
-  const dialog = $("summary-dialog");
-  $("summary-text").textContent = "Writing summary…";
-  dialog.showModal();
+  const btn = $("summary-btn");
+  const note = $("summary-note");
+  btn.disabled = true;
+  btn.textContent = "Writing…";
   try {
-    const { text } = await api.summary(state.log);
-    $("summary-text").textContent = text;
+    const { text, needs_attention: attention = [] } = await api.summary(state.log);
+    const list = $("summary-attention");
+    list.replaceChildren(...attention.map((item) => Object.assign(document.createElement("li"), { textContent: `Needs attention: ${item}` })));
+    list.hidden = attention.length === 0;
+    // The highlighted list above already shows "Needs attention", so leave it out of the note body.
+    note.textContent = text.replace(/\n*Needs attention[^\n]*:\n(?:- [^\n]*\n?)*/, "\n").trim();
+    note.classList.remove("empty");
+    $("summary-text").textContent = text; // the full-size dialog
+    $("copy-note-btn").disabled = false;
   } catch (e) {
-    $("summary-text").textContent = `Couldn't write the summary: ${e.message}`;
+    note.textContent = `Couldn't write the summary: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Update summary";
   }
+}
+
+function copyNote() {
+  const btn = $("copy-note-btn");
+  // The complete note, including "Needs attention", for pasting into records.
+  navigator.clipboard?.writeText($("summary-text").textContent).then(() => {
+    btn.lastChild.textContent = "Copied";
+    setTimeout(() => (btn.lastChild.textContent = "Copy note"), 1500);
+  });
+}
+
+// Session timer in the header: mm:ss since Start.
+function startTimer() {
+  const started = Date.now();
+  const tick = () => {
+    const s = Math.floor((Date.now() - started) / 1000);
+    $("session-timer").textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+function endSession() {
+  if (confirm("End this session? The conversation on screen will be cleared.")) location.reload();
 }
 
 function buildModeButtons(modes) {
@@ -206,6 +259,7 @@ function buildModeButtons(modes) {
 
 async function start() {
   $("start-screen").hidden = true;
+  startTimer();
   setupPhone();
   const modes = await api.modes();
   state.modes = modes;
@@ -217,7 +271,7 @@ async function start() {
   });
 
   if (!speechSupported) {
-    $("mic-btn").textContent = "Speech not supported, use Chrome";
+    $("mic-label").textContent = "Speech not supported, use Chrome";
     $("mic-btn").disabled = true;
   }
   setMic(true);
@@ -245,7 +299,7 @@ function setMic(on) {
     startListening({
       onFinal: onMedicSpeech,
       onInterim: (text) => ($("heard").textContent = text),
-      onStatus: (text) => (btn.textContent = text),
+      onStatus: (text) => ($("mic-label").textContent = text.replace(/^[^\w]+\s*/u, "")),
     });
   } else {
     stopListening();
@@ -278,6 +332,8 @@ $("send-btn").addEventListener("click", sendAnswer);
 $("clear-btn").addEventListener("click", clearAnswer);
 $("backspace-btn").addEventListener("click", removeLastSign);
 $("summary-btn").addEventListener("click", showSummary);
+$("copy-note-btn").addEventListener("click", copyNote);
+$("end-btn").addEventListener("click", endSession);
 // Typed fallback for when speech recognition struggles (noisy room, no internet).
 $("type-form").addEventListener("submit", (event) => {
   event.preventDefault();

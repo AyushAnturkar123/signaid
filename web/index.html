@@ -7,108 +7,229 @@
   <title>SignAid</title>
   <!-- Lets a phone add SignAid to the home screen and open it like an app, with no browser bars -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#17794b">
+  <meta name="theme-color" content="#0a120f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="SignAid">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <!-- A typeface designed for maximum legibility. Falls back to the system font offline. -->
+  <!-- Manrope for text, JetBrains Mono for small labels. Both fall back to system fonts offline. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%2317794b' d='M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z'/%3E%3Cpath fill='%23fff' d='M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%2345e3a0' d='M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z'/%3E%3Cpath fill='%230a120f' d='M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="signaid.css">
 </head>
 <body>
-  <div id="start-screen" class="overlay">
-    <span class="logo logo-large">
-      <svg width="72" height="72" viewBox="0 0 48 48" aria-hidden="true">
-        <path class="logo-bubble" d="M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z"/>
-        <path class="logo-cross" d="M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z"/>
-      </svg>
-      <span class="logo-text">SignAid</span>
-    </span>
-    <p class="tagline">Talk with a medic using ASL, even without an interpreter.</p>
-    <button id="start-btn" class="primary big">Start</button>
-    <p class="muted privacy">Uses your camera and microphone. Video never leaves this device.</p>
+  <!-- Reused icons -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-logo" viewBox="0 0 48 48">
+      <path class="logo-bubble" d="M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z"/>
+      <path class="logo-cross" d="M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z"/>
+    </symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>
+    </symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/>
+    </symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/>
+    </symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <rect x="5" y="5" width="14" height="14" rx="2"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m5 12 5 5L20 7"/>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>
+    </symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <path d="M12 3c.6 4.5 2.5 6.4 7 7-4.5.6-6.4 2.5-7 7-.6-4.5-2.5-6.4-7-7 4.5-.6 6.4-2.5 7-7z"/>
+    </symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+      <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>
+    </symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+      <path d="M4 10v4"/><path d="M8 7v10"/><path d="M12 4v16"/><path d="M16 8v8"/><path d="M20 11v2"/>
+    </symbol>
+  </svg>
+
+  <!-- ================= Landing page ================= -->
+  <div id="start-screen" class="landing">
+    <header class="landing-header">
+      <span class="logo"><svg width="44" height="44" aria-hidden="true"><use href="#i-logo"/></svg><span class="logo-text">Sign<span>Aid</span></span></span>
+      <div class="landing-header-right">
+        <span class="private"><svg width="18" height="18" aria-hidden="true"><use href="#i-shield"/></svg>Private by design</span>
+        <button id="start-session-btn" class="outline-btn">Start session</button>
+      </div>
+    </header>
+
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Emergency ASL communication</p>
+        <h1>Talk with your patient, <span class="mint">clearly.</span></h1>
+        <p class="hero-sub">Real-time communication between medics and Deaf or hard-of-hearing patients, when every second matters.</p>
+        <div class="hero-actions">
+          <button id="start-btn" class="cta">Start communicating <svg width="22" height="22" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <span class="hero-note"><svg width="18" height="18" aria-hidden="true"><use href="#i-camera"/></svg>Camera &amp; microphone<br>required</span>
+        </div>
+        <ul class="checklist">
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Speech to readable text</li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Signs spoken aloud</li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Clear clinical handoff</li>
+        </ul>
+      </div>
+
+      <!-- Decorative preview: the real camera starts in the session -->
+      <div class="preview" aria-hidden="true">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <p class="mono-label preview-label">Live hand recognition</p>
+        <span class="chip"><span class="dot"></span>Vision ready · 98%</span>
+        <svg class="preview-hand" viewBox="76 98 240 245">
+          <g class="bones">
+            <path d="M200 330 158 300 128 268 106 238 92 212"/>
+            <path d="M200 330 166 250 156 196 150 160 146 128"/>
+            <path d="M200 330 200 244 200 186 200 150 200 112"/>
+            <path d="M200 330 234 250 242 198 247 168 252 136"/>
+            <path d="M200 330 264 266 278 226 286 200 294 176"/>
+            <path d="M166 250 200 244 234 250 264 266"/>
+          </g>
+          <g class="joints">
+            <circle cx="200" cy="330" r="7"/><circle cx="158" cy="300" r="7"/><circle cx="128" cy="268" r="7"/>
+            <circle cx="106" cy="238" r="7"/><circle cx="92" cy="212" r="7"/><circle cx="166" cy="250" r="7"/>
+            <circle cx="156" cy="196" r="7"/><circle cx="150" cy="160" r="7"/><circle cx="146" cy="128" r="7"/>
+            <circle cx="200" cy="244" r="7"/><circle cx="200" cy="186" r="7"/><circle cx="200" cy="150" r="7"/>
+            <circle cx="200" cy="112" r="7"/><circle cx="234" cy="250" r="7"/><circle cx="242" cy="198" r="7"/>
+            <circle cx="247" cy="168" r="7"/><circle cx="252" cy="136" r="7"/><circle cx="264" cy="266" r="7"/>
+            <circle cx="278" cy="226" r="7"/><circle cx="286" cy="200" r="7"/><circle cx="294" cy="176" r="7"/>
+          </g>
+        </svg>
+        <div class="speech-bar">
+          <span class="speaker"><svg width="22" height="22"><use href="#i-speaker"/></svg></span>
+          <span><span class="mono-label">Live translation</span><span class="speech-text">“I am in pain.”</span></span>
+          <svg class="wave" width="24" height="24"><use href="#i-wave"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <footer class="landing-footer">
+      <span>Built for faster, more human emergency care.</span>
+      <span>SignAid supports communication and does not replace a qualified ASL interpreter.</span>
+    </footer>
   </div>
 
-  <header>
-    <div class="header-left">
-      <button id="mic-btn" class="pill" aria-pressed="false">🎤 Mic off</button>
-    </div>
-    <h1>
-      <span class="logo">
-        <svg width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
-          <path class="logo-bubble" d="M14 4h20a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 8v-8.4A10 10 0 0 1 4 26V14A10 10 0 0 1 14 4z"/>
-          <path class="logo-cross" d="M21 11h6v6.5h6.5v6H27V30h-6v-6.5h-6.5v-6H21z"/>
-        </svg>
-        <span class="logo-text">SignAid</span>
-      </span>
-    </h1>
-    <div class="header-right row">
-      <button id="recorder-toggle">Record signs</button>
-      <button id="summary-btn">Handoff summary</button>
+  <!-- ================= Live session ================= -->
+  <header class="session-header">
+    <span class="logo"><svg width="40" height="40" aria-hidden="true"><use href="#i-logo"/></svg><span class="logo-text">Sign<span>Aid</span></span></span>
+    <div class="session-header-right">
+      <button id="recorder-toggle" class="ghost-btn">Record signs</button>
+      <span class="live-status"><span class="dot"></span><span class="live-text">Live session</span> <span id="session-timer" class="mono">00:00</span></span>
     </div>
   </header>
 
-  <main>
-    <section id="question-card" class="card question">
-      <span id="new-question-badge" hidden>New question</span>
-      <h2 id="question-from">Medic said</h2>
-      <p id="question" aria-live="polite">Waiting for the medic to speak…</p>
-      <p id="heard" class="muted"></p>
-      <form id="type-form" class="row">
-        <input id="type-input" placeholder="Or type what the medic said" autocomplete="off" aria-label="Type what the medic said">
-        <button>Send</button>
-      </form>
-    </section>
+  <main class="session">
+    <div class="col-left">
+      <section id="question-card" class="card question">
+        <span id="new-question-badge" hidden>New question</span>
+        <p id="question-from" class="mono-label">Medic said</p>
+        <p id="question" aria-live="polite">Waiting for the medic to speak…</p>
+        <p id="heard"></p>
+      </section>
 
-    <section id="camera" class="camera">
-      <!-- Above the video, so it's on screen without scrolling on a laptop -->
-      <p id="step-status">Sign your answer, then sign DONE to send it</p>
-      <div class="frame">
-        <!-- Mirrored with CSS only, so it feels like a mirror to the signer -->
-        <video id="video" playsinline muted></video>
-        <canvas id="overlay"></canvas>
-        <div id="live" class="pill">Camera starting…</div>
-        <!-- Recognition starts paused, so testing or setting up never adds signs by accident -->
-        <button id="scan-btn" class="scan-btn" aria-pressed="false">▶ Start scanning</button>
-        <button id="fullscreen-btn" class="fs-btn" aria-pressed="false">⛶ Full screen</button>
-      </div>
-      <!-- Only shown in full screen: the rest of the page is hidden there -->
-      <div id="fs-bar" class="fs-bar" aria-live="polite">
-        <p id="fs-medic"></p>
-        <p id="fs-patient"></p>
-      </div>
-    </section>
+      <section id="camera" class="camera-panel">
+        <!-- Above the video, so it's on screen without scrolling on a laptop -->
+        <p id="step-status">Sign your answer, then sign DONE to send it</p>
+        <div class="frame">
+          <!-- Mirrored with CSS only, so it feels like a mirror to the signer -->
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <span class="grid-overlay" aria-hidden="true"></span>
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          <div class="cam-label">
+            <span class="mono-label"><svg width="14" height="14" aria-hidden="true"><use href="#i-camera"/></svg>Patient camera</span>
+            <div id="live" class="chip">Camera starting…</div>
+          </div>
+          <button id="fullscreen-btn" class="fs-btn" aria-pressed="false">⛶ Full screen</button>
+          <div class="speech-bar sign-bar">
+            <span class="speaker"><svg width="22" height="22" aria-hidden="true"><use href="#i-speaker"/></svg></span>
+            <span class="sign-bar-text">
+              <span class="mono-label">Sign to speech</span>
+              <span id="answer" aria-live="polite">—</span>
+              <span id="last-spoken"></span>
+            </span>
+            <svg class="wave" width="24" height="24" aria-hidden="true"><use href="#i-wave"/></svg>
+          </div>
+        </div>
+        <!-- Inside the camera panel, so these still work in full screen -->
+        <div class="cam-controls">
+          <button id="mic-btn" class="round-btn" aria-pressed="false"><svg width="18" height="18" aria-hidden="true"><use href="#i-mic"/></svg><span id="mic-label">Mic off</span></button>
+          <!-- Recognition starts paused, so testing or setting up never adds signs by accident -->
+          <button id="scan-btn" class="round-btn scan-btn" aria-pressed="false"><svg width="18" height="18" aria-hidden="true"><use href="#i-camera"/></svg><span id="scan-label">Start scanning</span></button>
+          <button id="end-btn" class="round-btn danger"><svg width="16" height="16" aria-hidden="true"><use href="#i-stop"/></svg>End session</button>
+        </div>
+        <!-- Only shown in full screen: the rest of the page is hidden there -->
+        <div id="fs-bar" class="fs-bar" aria-live="polite">
+          <p id="fs-medic"></p>
+          <p id="fs-patient"></p>
+        </div>
+      </section>
 
-    <section class="guide" aria-label="Hand signal guide">
-      <div id="control-guide" class="card"></div>
-      <button id="guide-btn" aria-label="Open the hand signal guide full size">
-        <img src="hand-signal-guide.png" width="1024" height="768"
-             alt="Hand signal guide showing signs for yes, no, pain, help, water, food or eat, bathroom, cold, stop, and phone or call">
-      </button>
-    </section>
-
-    <section class="card answer">
-      <h2>You signed</h2>
-      <p id="answer" aria-live="polite">—</p>
-      <div class="row">
-        <button id="send-btn" class="primary" disabled>Send answer</button>
-        <button id="backspace-btn" aria-label="Remove last sign">⌫</button>
-        <button id="clear-btn">Clear</button>
-      </div>
-      <div class="modes">
-        <nav id="mode-buttons" class="row" aria-label="Answer mode"></nav>
+      <section class="card answer">
+        <div class="answer-head">
+          <p class="mono-label">Answer with</p>
+          <div class="row answer-actions">
+            <button id="send-btn" class="pill-btn primary" disabled>Send answer</button>
+            <button id="backspace-btn" class="pill-btn" aria-label="Remove last sign">⌫</button>
+            <button id="clear-btn" class="pill-btn">Clear</button>
+          </div>
+        </div>
+        <nav id="mode-buttons" class="row tabs" aria-label="Answer mode"></nav>
         <div id="quick-replies" class="row" aria-label="Tap to answer"></div>
-      </div>
-    </section>
+      </section>
+    </div>
 
-    <section class="card log">
-      <h2>Conversation</h2>
-      <ol id="log"></ol>
-    </section>
+    <div class="col-right">
+      <section class="card transcript">
+        <div class="card-head">
+          <div>
+            <p class="mono-label mint">Live transcript</p>
+            <h2>Conversation</h2>
+          </div>
+          <span class="lang-pill">ASL ⇄ EN</span>
+        </div>
+        <ol id="log"></ol>
+        <form id="type-form" class="type-form">
+          <input id="type-input" placeholder="Or type what the medic said" autocomplete="off" aria-label="Type what the medic said">
+          <button class="pill-btn">Send</button>
+        </form>
+      </section>
+
+      <section class="card summary-card">
+        <div class="card-head">
+          <h2 class="summary-title"><svg width="18" height="18" aria-hidden="true"><use href="#i-sparkle"/></svg>Handoff summary</h2>
+          <span class="mono-label">Draft note</span>
+        </div>
+        <ul id="summary-attention" hidden></ul>
+        <p id="summary-note" class="empty">No summary yet. Press Update summary when you're ready to hand off.</p>
+        <div class="row summary-actions">
+          <button id="summary-btn" class="pill-btn primary">Update summary</button>
+          <button id="copy-note-btn" class="pill-btn" disabled><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg>Copy note</button>
+        </div>
+      </section>
+
+      <section class="card guide" aria-label="Sign guide">
+        <div class="card-head"><h2>Sign guide</h2><span class="mono-label">Tap image to enlarge</span></div>
+        <div id="control-guide"></div>
+        <button id="guide-btn" aria-label="Open the hand signal guide full size">
+          <img src="hand-signal-guide.png" width="1024" height="768"
+               alt="Hand signal guide showing signs for yes, no, pain, help, water, food or eat, bathroom, cold, stop, and phone or call">
+        </button>
+      </section>
+    </div>
   </main>
 
   <aside id="recorder" class="card" hidden>
@@ -117,8 +238,8 @@
     <label class="check"><input type="checkbox" id="rec-left"> I'm left-handed</label>
     <label>Sign <select id="rec-label"></select></label>
     <div class="row">
-      <button id="rec-btn" class="primary">Record 20 samples</button>
-      <button id="rec-delete">Delete mine</button>
+      <button id="rec-btn" class="pill-btn primary">Record 20 samples</button>
+      <button id="rec-delete" class="pill-btn">Delete mine</button>
     </div>
     <p id="rec-status" class="muted">Hold the sign steady in view. Recording starts after a 3-second countdown.</p>
     <div id="rec-counts"></div>
@@ -131,15 +252,16 @@
 
   <dialog id="guide-dialog">
     <img src="hand-signal-guide.png" alt="Hand signal guide, full size" width="1024" height="768">
-    <form method="dialog" class="row"><button class="primary">Close</button></form>
+    <form method="dialog" class="row"><button class="pill-btn primary">Close</button></form>
   </dialog>
 
+  <!-- The summary, full size (opened from the Handoff summary card) -->
   <dialog id="summary-dialog">
     <h2>Handoff summary</h2>
     <pre id="summary-text"></pre>
     <div class="row">
-      <button id="copy-btn">Copy summary</button>
-      <form method="dialog"><button class="primary">Close</button></form>
+      <button id="copy-btn" class="pill-btn">Copy summary</button>
+      <form method="dialog"><button class="pill-btn primary">Close</button></form>
     </div>
   </dialog>
 
@@ -150,8 +272,10 @@
 
     $("guide-btn").addEventListener("click", () => $("guide-dialog").showModal());
     $("copy-btn").addEventListener("click", () => navigator.clipboard?.writeText($("summary-text").textContent));
+    // The landing header's button starts the session too.
+    $("start-session-btn").addEventListener("click", () => $("start-btn").click());
 
-    // main.js writes plain text into #live and #mic-btn; colour them from that text.
+    // main.js writes plain text into #live and the mic label; colour them from that text.
     const onTextChange = (el, fn) => new MutationObserver(fn).observe(el, { childList: true, characterData: true, subtree: true });
     onTextChange($("live"), () => {
       const text = $("live").textContent;
@@ -160,7 +284,7 @@
       $("live").classList.toggle("warn", text.startsWith("Camera error"));
       $("camera").classList.toggle("tracking", handInView);
     });
-    onTextChange($("mic-btn"), () => $("mic-btn").classList.toggle("good", $("mic-btn").textContent.includes("Listening")));
+    onTextChange($("mic-btn"), () => $("mic-btn").classList.toggle("good", $("mic-label").textContent.includes("Listening")));
   </script>
 </body>
 </html>
