@@ -45,7 +45,8 @@
   </header>
 
   <main>
-    <section class="card question">
+    <section id="question-card" class="card question">
+      <span id="new-question-badge" hidden>New question</span>
       <h2>Medic said</h2>
       <p id="question" aria-live="polite">Waiting for the medic to speak…</p>
       <p id="heard" class="muted"></p>
@@ -56,15 +57,18 @@
     </section>
 
     <section id="camera" class="camera">
+      <!-- Above the video, so it's on screen without scrolling on a laptop -->
+      <p id="step-status" aria-live="polite">Sign your answer, then lower your hand</p>
       <div class="frame">
         <!-- Mirrored with CSS only, so it feels like a mirror to the signer -->
         <video id="video" playsinline muted></video>
         <canvas id="overlay"></canvas>
+        <div id="live" class="pill">Camera starting…</div>
       </div>
-      <div id="live" class="pill">Camera starting…</div>
     </section>
 
     <section class="guide" aria-label="Hand signal guide">
+      <div id="control-guide" class="card"></div>
       <button id="guide-btn" aria-label="Open the hand signal guide full size">
         <img src="hand-signal-guide.png" width="1024" height="768"
              alt="Hand signal guide showing signs for yes, no, pain, help, water, food or eat, bathroom, cold, stop, and phone or call">
@@ -103,6 +107,12 @@
     <p id="rec-status" class="muted">Hold the sign steady in view. Recording starts after a 3-second countdown.</p>
     <div id="rec-counts"></div>
   </aside>
+
+  <!-- Sticks to the bottom of the window, so the patient sees it wherever the page is scrolled -->
+  <div id="alerts">
+    <p id="spoken-banner" hidden></p>
+    <p id="confirm-prompt" aria-live="polite" hidden></p>
+  </div>
 
   <dialog id="guide-dialog">
     <img src="hand-signal-guide.png" alt="Hand signal guide, full size" width="1024" height="768">

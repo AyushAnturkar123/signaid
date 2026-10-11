@@ -145,7 +145,10 @@ web/                    Frontend (plain HTML/CSS/JS, no build step)
   speech.js             speech-to-text and text-to-speech
   recorder.js           "Record signs" panel
   api.js                HTTP calls to the server
-  ui/                   (for body map, pain scale, phrase board)
+  ui/                   on-screen pieces of the hands-free flow
+    step.js             status line and "Sign YES to send" confirm prompt
+    alerts.js           "New question" flash, "Said to medic" banner
+    control-guide.js    DONE / CLEAR / DELETE guide next to the camera
 ```
 
 ## Setup
