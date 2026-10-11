@@ -240,6 +240,26 @@ main {
 .frame canvas { position: absolute; inset: 0; pointer-events: none; }
 
 #live { position: absolute; left: 14px; top: 14px; }
+
+/* Start / pause recognition, centred at the bottom of the video */
+.scan-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  padding: 12px 22px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: var(--accent-bright);
+  color: #08110c;
+  border-color: var(--accent-bright);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+.scan-btn[aria-pressed="true"] {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
 /* Live indicator dot — the page's one bit of ambient motion */
 #live::before {
   content: "";

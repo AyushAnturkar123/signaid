@@ -19,7 +19,8 @@ const LOWERED_HAND_MS = 1500; // hand out of view this long = "I'm done answerin
 const CONFIRM_MODE = "yesno"; // while confirming, the classifier only listens for YES and NO
 
 // step: "answering" (signs build the answer) or "confirming" (YES sends it, NO clears it).
-const state = { mode: "free", step: "answering", question: "", answer: [], log: [], hands: [], modes: {} };
+// scanning: recognition is on. It starts off, so testing or setting up never adds signs by accident.
+const state = { mode: "free", step: "answering", question: "", answer: [], log: [], hands: [], modes: {}, scanning: false };
 let sendToServer = () => {};
 let lastSent = 0;
 let recorder = { isLeftHanded: () => false };
@@ -117,6 +118,7 @@ function onHands(hands) {
   const now = performance.now();
   if (hands.length) handSeenAt = now;
   else confirmEcho = null;
+  if (!state.scanning) return; // hands are still tracked (the recorder needs them), just not recognized
   if (now - lastSent < SEND_INTERVAL_MS) return;
   lastSent = now;
   const mode = state.step === "confirming" ? CONFIRM_MODE : state.mode;
@@ -125,12 +127,24 @@ function onHands(hands) {
 
 // The patient lowering their hand after answering moves on to the confirm step.
 function checkLoweredHand() {
-  if (state.step !== "answering" || !state.answer.length || state.hands.length) return;
+  if (!state.scanning || state.step !== "answering" || !state.answer.length || state.hands.length) return;
   if (!$("recorder").hidden) return; // hands come and go while recording samples
   if (performance.now() - Math.max(handSeenAt, answerChangedAt) >= LOWERED_HAND_MS) setStep("confirming");
 }
 
+const PAUSED_TEXT = "Paused · press Start scanning";
+
+function setScanning(on) {
+  state.scanning = on;
+  const btn = $("scan-btn");
+  btn.setAttribute("aria-pressed", String(on));
+  btn.textContent = on ? "⏸ Pause scanning" : "▶ Start scanning";
+  if (on) handSeenAt = performance.now(); // don't jump straight to confirming on resume
+  else $("live").textContent = PAUSED_TEXT;
+}
+
 function onServerMessage(msg) {
+  if (!state.scanning) return; // ignore replies to frames sent just before pausing
   if (msg.type === "prediction") {
     let text;
     if (!state.hands.length) text = "No hand in view";
@@ -227,6 +241,7 @@ async function start() {
 
   try {
     await startCamera($("video"), $("overlay"), onHands);
+    if (!state.scanning) $("live").textContent = PAUSED_TEXT;
   } catch (e) {
     $("live").textContent = `Camera error: ${e.message}`;
   }
@@ -269,6 +284,7 @@ new MutationObserver(() => {
 renderControlGuide($("control-guide"));
 
 $("start-btn").addEventListener("click", start);
+$("scan-btn").addEventListener("click", () => setScanning(!state.scanning));
 $("mic-btn").addEventListener("click", () => setMic(!micOn));
 // Send, Clear and ⌫ stay as a backup for the medic. The patient never needs them.
 $("send-btn").addEventListener("click", sendAnswer);
