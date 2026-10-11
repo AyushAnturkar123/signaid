@@ -222,3 +222,8 @@ def test_follow_up_route_reports_done(client):
         {"role": "patient", "text": "No."},
     ]
     assert client.post("/api/follow-up", json={"log": log}).json() == {"question": None, "mode": None, "done": True}
+
+
+
+def test_opening_route(client):
+    assert client.get("/api/opening").json() == {"question": "What symptoms do you have?", "mode": "free"}

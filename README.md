@@ -284,6 +284,8 @@ The live label in the camera view shows the distance to the closest sample. If r
 
 ## Follow-up questions
 
+As soon as the session starts, SignAid asks **"What symptoms do you have?"** in Free mode, without waiting for the medic. The patient's answer starts the first symptom round.
+
 After the patient answers, SignAid can ask **one short follow-up** on screen and switch to the tab the patient answers in. For example, the patient signs PAIN and DONE, and SignAid asks "How bad is your pain, 1 to 10?" in Number mode, then "Where is the pain?" in **Pain location** mode (CHEST, HEAD, LEGS), then Gemini asks "Did it start suddenly?" in Yes/No mode.
 
 - **The pain steps are a fixed rule**, not Gemini: pain level first, then location, always in that order, also offline. It skips the level if the patient already gave one, and never asks after a "no pain" answer. Gemini handles every other follow-up (allergies, medications, HELP, onset).
@@ -352,6 +354,7 @@ Once a sign has been held steadily (0.5 s, or 1 s for control signs), the server
 | `DELETE /api/samples/{label}?signer=Name` | | `{"removed": 20}` |
 | `POST /api/simplify` | `{"text": "medic's words"}` | `{"text": "plain version", "mode": "yesno"}` |
 | `POST /api/answer` | `{"signs": ["8"], "mode": "number", "question": "..."}` | `{"text": "8 out of 10."}` |
+| `GET /api/opening` | | `{"question": "What symptoms do you have?", "mode": "free"}`, asked at Start |
 | `POST /api/follow-up` | `{"log": [...]}` (same as summary) | `{"question": "How bad is your pain, 1 to 10?", "mode": "number"}`, or both `null`. `"new_round": true` on "What other symptom do you have?", and `{"question": null, "mode": null, "done": true}` after "no other symptoms" |
 | `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note", "needs_attention": ["chest pain with trouble breathing"]}` |
 

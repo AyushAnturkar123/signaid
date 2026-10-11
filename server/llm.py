@@ -312,6 +312,11 @@ MAX_FOLLOW_UPS = 3
 # new round for the next symptom; NO ends the interview and the app opens the handoff summary.
 CLOSING_QUESTION = "Do you have any other symptoms?"
 NEXT_SYMPTOM_QUESTION = "What other symptom do you have?"
+# Asked right after the patient's opening line, without waiting for the medic.
+OPENING_QUESTION = "What symptoms do you have?"
+OPENING = {"question": OPENING_QUESTION, "mode": "free"}
+# Each of these starts a symptom round: follow-ups are counted, and pain steps scoped, from there.
+ROUND_START_QUESTIONS = {OPENING_QUESTION, NEXT_SYMPTOM_QUESTION}
 
 FOLLOW_UP_SYSTEM = f"""You are SignAid, an app that helps a Deaf patient talk with a medic in a
 medical emergency. The patient answers only with hand signs. Questions come from the MEDIC or
@@ -357,23 +362,34 @@ def _questions(log_entries):
 
 
 def _follow_ups_in_a_row(log_entries):
-    """SignAid questions since the medic last spoke, or since the current symptom round started."""
+    """SignAid follow-ups since the medic last spoke or the current symptom round started
+    (the round's opening question itself doesn't count)."""
     count = 0
     for e in reversed(log_entries):
         if e["role"] == "medic":
             break
         if e["role"] == FOLLOW_UP_ROLE:
-            count += 1
-            if e["text"] == NEXT_SYMPTOM_QUESTION:
+            if e["text"] in ROUND_START_QUESTIONS:
                 break
+            count += 1
     return count
+
+
+def _signaid_is_leading(log_entries):
+    """True if SignAid asked something since the medic last spoke."""
+    for e in reversed(log_entries):
+        if e["role"] == "medic":
+            return False
+        if e["role"] == FOLLOW_UP_ROLE:
+            return True
+    return False
 
 
 def _current_round(log_entries):
     """The entries since the current symptom round started (after "What other symptom...")."""
     for i in range(len(log_entries) - 1, -1, -1):
         e = log_entries[i]
-        if e["role"] == FOLLOW_UP_ROLE and e["text"] == NEXT_SYMPTOM_QUESTION:
+        if e["role"] == FOLLOW_UP_ROLE and e["text"] in ROUND_START_QUESTIONS:
             return log_entries[i:]
     return log_entries
 
@@ -432,8 +448,8 @@ def follow_up(log_entries):
         if question["question"]:
             return question
     # SignAid's own questions about this symptom are finished: ask about other symptoms.
-    # Only after SignAid asked something; when the medic is leading, SignAid doesn't interrupt.
-    if chain >= 1:
+    # Only when SignAid is leading; when the medic is asking, SignAid doesn't interrupt.
+    if _signaid_is_leading(log_entries):
         return {"question": CLOSING_QUESTION, "mode": "yesno"}
     return NO_FOLLOW_UP
 

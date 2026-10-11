@@ -385,7 +385,7 @@ def test_new_round_gets_fresh_follow_ups():
         turn("signaid", llm.NEXT_SYMPTOM_QUESTION), turn("patient", "I have pain."),
     ]
     # The count restarts with the new symptom, so the pain steps run again.
-    assert llm._follow_ups_in_a_row(log) == 1
+    assert llm._follow_ups_in_a_row(log) == 0
     assert llm.follow_up(log) == {"question": "How bad is your pain, 1 to 10?", "mode": "number"}
 
 
@@ -406,3 +406,39 @@ def test_no_closing_question_when_the_medic_leads(monkeypatch):
 
 def test_follow_up_prompt_leaves_other_symptoms_to_the_app():
     assert "other symptoms" in llm.FOLLOW_UP_SYSTEM
+
+
+
+# --- The opening question
+
+INTRO = turn("patient", "I'm Deaf. Please speak to me, and I'll answer with signs.")
+
+
+def test_opening_question():
+    assert llm.OPENING == {"question": "What symptoms do you have?", "mode": "free"}
+    assert llm.OPENING_QUESTION in llm.ROUND_START_QUESTIONS
+
+
+def test_full_round_after_the_opening_question(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": "Did it start suddenly?", "mode": "yesno"}')
+    log = [INTRO, turn("signaid", llm.OPENING_QUESTION), turn("patient", "I have pain.")]
+    assert llm.follow_up(log)["question"] == "How bad is your pain, 1 to 10?"
+    log += [turn("signaid", "How bad is your pain, 1 to 10?"), turn("patient", "8 out of 10.")]
+    assert llm.follow_up(log)["question"] == "Where is the pain?"
+    log += [turn("signaid", "Where is the pain?"), turn("patient", "The pain is in my chest.")]
+    # The opening question doesn't use up a follow-up, so Gemini still gets the third one.
+    assert llm.follow_up(log)["question"] == "Did it start suddenly?"
+    log += [turn("signaid", "Did it start suddenly?"), turn("patient", "Yes.")]
+    assert llm.follow_up(log)["question"] == llm.CLOSING_QUESTION
+
+
+def test_symptom_with_nothing_to_ask_goes_to_closing(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": null, "mode": null}')
+    log = [INTRO, turn("signaid", llm.OPENING_QUESTION), turn("patient", "I am cold.")]
+    assert llm.follow_up(log) == {"question": llm.CLOSING_QUESTION, "mode": "yesno"}
+
+
+def test_medic_question_takes_over_from_the_opening(monkeypatch):
+    fake_gemini(monkeypatch, '{"question": null, "mode": null}')
+    log = [INTRO, turn("signaid", llm.OPENING_QUESTION), turn("medic", "Are you dizzy?"), turn("patient", "No.")]
+    assert llm.follow_up(log) == llm.NO_FOLLOW_UP

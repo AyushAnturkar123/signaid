@@ -171,6 +171,12 @@ def answer(body: AnswerIn):
     return {"text": llm.answer(body.signs, body.mode, body.question)}
 
 
+@app.get("/api/opening")
+def opening():
+    """The first question, asked as soon as the session starts: "What symptoms do you have?"."""
+    return llm.OPENING
+
+
 @app.post("/api/follow-up")
 def follow_up(body: SummaryIn):
     """After the patient answers: one follow-up question and its answer mode, or nulls."""

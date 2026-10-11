@@ -179,6 +179,20 @@ async function askFollowUp() {
   if (next.new_round) showSummary();
 }
 
+// Right after Start, SignAid asks about symptoms itself, without waiting for the medic.
+async function askOpeningQuestion() {
+  let opening;
+  try {
+    opening = await api.opening();
+  } catch {
+    return; // the medic can still ask; the conversation works the same
+  }
+  if (state.log.at(-1)?.role !== "patient") return; // the medic already spoke
+  addLog("signaid", opening.question);
+  showQuestion(opening.question, "signaid");
+  setMode(opening.mode);
+}
+
 // The patient has no other symptoms: stop the camera scanning, leave full screen, and open the
 // handoff summary full size for the medic.
 async function finishInterview() {
@@ -293,6 +307,7 @@ async function start() {
 
   addLog("patient", INTRO);
   say(INTRO);
+  askOpeningQuestion();
 
   try {
     await startCamera($("video"), $("overlay"), onHands);
