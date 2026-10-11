@@ -1,6 +1,7 @@
 """Gemini wrapper tests. The real API is never called: either there's no key
 (the fallbacks run) or _gemini is replaced with a fake reply."""
 
+import json
 import logging
 import time
 
@@ -90,6 +91,67 @@ def test_answer_uses_gemini_reply(monkeypatch):
     assert "Signs: 8" in calls[0]["prompt"]
 
 
+SUMMARY_JSON = {
+    "chief_complaint": "chest pain",
+    "pain": {"level": "8", "location": "chest"},
+    "allergies": "not asked",
+    "medications": "denied",
+    "other_answers": ["trouble breathing"],
+    "needs_attention": ["chest pain with trouble breathing"],
+}
+LOG = [{"role": "medic", "text": "Are you having chest pain?"}, {"role": "patient", "text": "Yes."}]
+
+
+def test_summary_turns_gemini_json_into_a_note(monkeypatch):
+    calls = fake_gemini(monkeypatch, json.dumps(SUMMARY_JSON))
+    details = llm.summary_details(LOG)
+    lines = details["text"].splitlines()
+    assert lines[0] == "Patient is Deaf and needs an ASL interpreter."
+    assert lines[2].startswith("Needs attention")
+    assert lines[3] == "- Flagged for attention: chest pain with trouble breathing"
+    # the flagged answers come before the rest of the note
+    assert details["text"].index("Needs attention") < details["text"].index("Chief complaint")
+    assert "Pain level: 8 out of 10" in lines
+    assert "Pain location: chest" in lines
+    assert "- trouble breathing" in lines
+    assert details["needs_attention"] == ["chest pain with trouble breathing"]
+    assert llm.summary(LOG) == details["text"]
+    assert calls[0]["json_output"] is True
+    assert "MEDIC: Are you having chest pain?" in calls[0]["prompt"]
+
+
+def test_summary_without_flags_has_no_attention_section(monkeypatch):
+    fake_gemini(monkeypatch, json.dumps({**SUMMARY_JSON, "needs_attention": [], "other_answers": []}))
+    details = llm.summary_details(LOG)
+    assert "attention" not in details["text"].lower()
+    assert "Other answers: not asked" in details["text"]
+    assert details["needs_attention"] == []
+
+
+def test_summary_accepts_a_number_for_the_pain_level(monkeypatch):
+    fake_gemini(monkeypatch, json.dumps({**SUMMARY_JSON, "pain": {"level": 8, "location": "chest"}}))
+    assert "Pain level: 8 out of 10" in llm.summary(LOG)
+
+
+@pytest.mark.parametrize("reply", [
+    "not json at all",
+    '["a", "list"]',
+    "null",
+    json.dumps({k: v for k, v in SUMMARY_JSON.items() if k != "allergies"}),  # missing field
+    json.dumps({**SUMMARY_JSON, "pain": "8 out of 10"}),  # pain isn't {level, location}
+    json.dumps({**SUMMARY_JSON, "pain": {"level": "8"}}),  # missing location
+    json.dumps({**SUMMARY_JSON, "needs_attention": "chest pain"}),  # not a list
+    json.dumps({**SUMMARY_JSON, "other_answers": [{"a": 1}]}),  # list of the wrong thing
+    json.dumps({**SUMMARY_JSON, "chief_complaint": ""}),  # empty field
+])
+def test_summary_falls_back_on_bad_gemini_reply(monkeypatch, reply):
+    fake_gemini(monkeypatch, reply)
+    details = llm.summary_details(LOG)
+    assert details["text"].startswith("Patient is Deaf and needs an ASL interpreter.\n\nConversation:")
+    assert "PATIENT: Yes." in details["text"]
+    assert details["needs_attention"] == []
+
+
 def test_gemini_returns_none_without_key():
     assert llm._gemini("system", "prompt") is None
 
@@ -110,6 +172,29 @@ def test_slow_gemini_times_out_and_falls_back(monkeypatch, fake_key, caplog):
     assert llm.last_call["task"] == "answer"
     assert llm.last_call["result"] == "timeout"
     assert "timeout" in caplog.text and "fallback" in caplog.text
+
+
+def test_slow_summary_times_out_and_falls_back(monkeypatch, fake_key):
+    monkeypatch.setattr(llm, "TIMEOUT_SECONDS", 0.2)
+    monkeypatch.setattr(llm, "_call", lambda *args: time.sleep(1) or json.dumps(SUMMARY_JSON))
+    start = time.perf_counter()
+    details = llm.summary_details(LOG)
+    assert time.perf_counter() - start < 0.6  # didn't wait for the slow call
+    assert details["text"].startswith("Patient is Deaf and needs an ASL interpreter.\n\nConversation:")
+    assert "PATIENT: Yes." in details["text"]
+    assert details["needs_attention"] == []
+    assert llm.last_call["task"] == "summary"
+    assert llm.last_call["result"] == "timeout"
+
+
+def test_summary_error_falls_back(monkeypatch, fake_key):
+    def broken(*args):
+        raise ConnectionError("no internet")
+
+    monkeypatch.setattr(llm, "_call", broken)
+    details = llm.summary_details(LOG)
+    assert details["text"].startswith("Patient is Deaf and needs an ASL interpreter.\n\nConversation:")
+    assert details["needs_attention"] == []
 
 
 def test_gemini_error_falls_back(monkeypatch, fake_key, caplog):
