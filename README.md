@@ -293,6 +293,7 @@ After the patient answers, SignAid can ask **one short follow-up** on screen and
 - **At most 3 follow-ups in a row**, then SignAid waits for the medic. A new medic question always takes over.
 - Never a diagnosis, cause or advice, and never the same question twice.
 - **Offline fallback** (no key, timeout or rate limit): the pain steps still run; other follow-ups are skipped.
+- **"Do you have any other symptoms?"** When SignAid's follow-ups for a symptom are done, it asks this in Yes/No mode (a fixed rule, also offline). **Yes:** "What other symptom do you have?" in Free mode starts a new round with fresh follow-ups, and the Handoff summary card refreshes in the background. **No:** scanning stops, full screen closes, and the handoff summary opens full size for the medic. SignAid only asks this after its own follow-ups, never in the middle of the medic's questions.
 
 Try it with the real key (it checks the mode, length, repeats and diagnosis words):
 
@@ -351,7 +352,7 @@ Once a sign has been held steadily (0.5 s, or 1 s for control signs), the server
 | `DELETE /api/samples/{label}?signer=Name` | | `{"removed": 20}` |
 | `POST /api/simplify` | `{"text": "medic's words"}` | `{"text": "plain version", "mode": "yesno"}` |
 | `POST /api/answer` | `{"signs": ["8"], "mode": "number", "question": "..."}` | `{"text": "8 out of 10."}` |
-| `POST /api/follow-up` | `{"log": [...]}` (same as summary) | `{"question": "How bad is your pain, 1 to 10?", "mode": "number"}`, or both `null` |
+| `POST /api/follow-up` | `{"log": [...]}` (same as summary) | `{"question": "How bad is your pain, 1 to 10?", "mode": "number"}`, or both `null`. `"new_round": true` on "What other symptom do you have?", and `{"question": null, "mode": null, "done": true}` after "no other symptoms" |
 | `POST /api/summary` | `{"log": [{"role": "medic", "text": "..."}]}` | `{"text": "handoff note", "needs_attention": ["chest pain with trouble breathing"]}` |
 
 ### Handoff summary

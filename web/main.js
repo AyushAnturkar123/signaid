@@ -168,12 +168,28 @@ async function askFollowUp() {
   } catch {
     return;
   }
-  if (!next.question) return;
   // A medic question that arrived while we waited takes priority.
   if (state.log.at(-1)?.role !== "patient") return;
+  if (next.done) return finishInterview(); // "No" to "Do you have any other symptoms?"
+  if (!next.question) return;
   addLog("signaid", next.question);
   showQuestion(next.question, "signaid");
   setMode(next.mode);
+  // "Yes" to other symptoms: add what we have so far to the summary card, in the background.
+  if (next.new_round) showSummary();
+}
+
+// The patient has no other symptoms: stop the camera scanning, leave full screen, and open the
+// handoff summary full size for the medic.
+async function finishInterview() {
+  setScanning(false);
+  if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+  if ($("camera").classList.contains("fullscreen")) $("fullscreen-btn").click(); // iPhone stand-in
+  $("question-from").textContent = "SignAid";
+  $("question").textContent = "Thank you. The summary is ready for the medic.";
+  await showSummary();
+  $("summary-dialog").showModal();
+  say("The patient has no other symptoms. The handoff summary is ready.");
 }
 
 // Everything the app says out loud is also shown on screen.
