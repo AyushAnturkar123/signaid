@@ -23,7 +23,8 @@ from server import llm  # noqa: E402
 DEFAULT_PAUSE_SECONDS = 4.0
 pause_seconds = DEFAULT_PAUSE_SECONDS
 
-# 12 things a medic might say: yes/no, pain scale, name and medication, open, and jargon.
+# 12 things a medic might say: yes/no, pain scale, location, questions needing a word (Free mode,
+# since the patient can't spell), open, and jargon.
 QUESTIONS = [
     "Any allergies?",
     "Are you having trouble breathing?",
@@ -46,8 +47,8 @@ ANSWERS = [
     (["YES"], "yesno", "Do you take any medication?"),
     (["8"], "number", "Rate your pain 1 to 10"),
     (["3"], "number", "How bad is the pain now?"),
-    (list("PENICILLIN"), "spelling", "What are you allergic to?"),
-    (list("MARIA"), "spelling", "What is your name?"),
+    (["CHEST"], "location", "Where does it hurt?"),
+    (["HEAD", "LEGS"], "location", "Where is the pain?"),
     (["PAIN", "WATER"], "free", "What do you need?"),
     (["COLD"], "free", "How are you feeling?"),
     (["HELP", "BATHROOM"], "free", ""),  # the patient starts, no question asked
@@ -70,8 +71,8 @@ CONVERSATIONS = {
         ("patient", "I'm Deaf. Please speak to me, and I'll answer with signs."),
         ("medic", "Do you have any allergies?"),
         ("patient", "Yes."),
-        ("medic", "What are you allergic to?"),
-        ("patient", "PENICILLIN"),
+        ("medic", "Are you allergic to penicillin?"),
+        ("patient", "Yes."),
         ("medic", "Did you take penicillin today?"),
         ("patient", "Yes."),
         ("medic", "Is it hard to breathe?"),

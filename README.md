@@ -1,6 +1,6 @@
 # SignAid
 
-An ASL communication aid for emergency medical situations. A Deaf patient answers with signs (YES/NO, pain 1–10, pain location, key medical signs, fingerspelling), and SignAid speaks the answers aloud and shows the medic's speech as large, plain-language captions.
+An ASL communication aid for emergency medical situations. A Deaf patient answers with signs (YES/NO, pain 1–10, pain location, key medical signs), and SignAid speaks the answers aloud and shows the medic's speech as large, plain-language captions.
 
 SignAid starts by asking "What symptoms do you have?", follows up on its own (pain → how bad → where), asks "Do you have any other symptoms?", and finishes with a structured handoff summary for ER staff. The patient never has to touch the device: control signs (DONE, CLEAR, DELETE) send and correct answers.
 
@@ -17,13 +17,12 @@ Built at HackNC 2026.
 
 ### Recognition modes
 
-The classifier only compares against the signs for the current mode. This avoids clashes between signs that share a handshape (YES and the letter S, 6 and W, 2 and V). Gemini picks the mode from the medic's question, and the patient can switch modes with on-screen buttons.
+The classifier only compares against the signs for the current mode. This avoids clashes between signs that share a handshape (6 and WATER are both a W handshape, YES and COLD are both fists). Gemini picks the mode from the medic's question, and the patient can switch modes with on-screen buttons.
 
 | Mode | When | Signs it listens for |
 |---|---|---|
 | **Yes/No** | Medic asks a yes/no question | YES, NO |
 | **Number** | Medic asks for a pain score | 1–10 |
-| **Spelling** | Patient spells a name, allergy or medication | A–Z except J and Z (on-screen keyboard for those) |
 | **Free** | Patient starts saying something themselves | YES, NO, and the 8 medical signs below |
 | **Pain location** | Patient shows where the pain is | CHEST, HEAD, LEGS |
 
@@ -57,33 +56,11 @@ Every sign is recorded and recognized as a **held handshape with no movement**. 
 
 6–9 differ only by which finger the thumb touches, so test them early. The on-screen pain scale is the backup.
 
-### Spelling mode
-
-J and Z need motion, so they're typed on the on-screen keyboard. Palm faces out unless noted.
-
-| Letter | Hold this | Letter | Hold this |
-|---|---|---|---|
-| A | Fist, thumb resting up against the side of the index | M | Index, middle and ring fingers folded over the thumb |
-| B | Four fingers straight up together, thumb folded across the palm | N | Index and middle fingers folded over the thumb |
-| C | Hand curved into a C, seen from the side | O | All fingertips touching the thumb tip, making an O |
-| D | Index up; other fingertips touch the thumb, making a circle | P | Like K, but pointing down |
-| E | Fingertips curled down onto the thumb, which is tucked across the palm | Q | Like G, but pointing down |
-| F | Thumb and index tips touch; other three fingers up and spread | R | Index and middle fingers crossed, pointing up |
-| G | Index and thumb pointing sideways, parallel; other fingers closed | S | Fist, thumb across the front of the fingers |
-| H | Index and middle fingers together, pointing sideways | T | Thumb tucked between the index and middle fingers |
-| I | Fist with the pinky up | U | Index and middle fingers up, together |
-| K | Index up, middle angled forward, thumb between them | V | Index and middle fingers up, spread |
-| L | Index up and thumb out, making an L | W | Index, middle and ring fingers up and spread; thumb holds the pinky |
-| | | X | Index finger bent into a hook; other fingers closed |
-| | | Y | Thumb and pinky out, other fingers closed |
-
-Letters that look alike as still shapes: A/S/T/M/N/E (fist family), U/V/R, G/H, K/P, G/Q. Watch these in the evaluation.
-
 ### Free mode: medical signs
 
 | # | Sign | Hold this |
 |---|---|---|
-| 1 | PAIN | Both index fingers pointing at each other, tips almost touching, in front of the chest (body map gives the location) |
+| 1 | PAIN | Both index fingers pointing at each other, tips almost touching, in front of the chest (the Pain location tab gives where) |
 | 2 | HELP | Thumbs-up fist resting on the other hand's flat, upturned palm |
 | 3 | WATER | W hand with the index finger touching the chin |
 | 4 | FOOD / EAT | Flat O (fingers straight, all fingertips touching the thumb) touching the lips |
@@ -118,15 +95,16 @@ The patient controls the app with three signs, so they never need to touch it. T
 | CLEAR | Both fists side by side, thumbs pointing down | Empty the answer |
 | DELETE | Both index fingers pointing left, side by side | Remove the last sign |
 
-They're two-hand gestures, so they never clash with one-hand letters and numbers. They're listed separately from the modes (`GET /api/controls`), and `scripts/evaluate.py` checks them in every mode, so a clash with any answer sign shows up in the report.
+They're two-hand gestures, so they never clash with the one-hand signs and numbers. They're listed separately from the modes (`GET /api/controls`), and `scripts/evaluate.py` checks them in every mode, so a clash with any answer sign shows up in the report.
 
 ### Cut from recognition
 
 | Cut | Why | Covered by |
 |---|---|---|
-| Headache | Same handshape as PAIN | PAIN + tapping the head on the body map |
-| Dizzy, Breathe, Tired, Nauseous, Fever | Depend on motion or location, or are easily confused | Medic asks ("Do you feel dizzy?"), patient answers YES/NO; also on the phrase board |
-| Medications | One hand covers the other, which confuses hand tracking | Phrase board button + fingerspelling the drug name |
+| Headache | Same handshape as PAIN | PAIN, then HEAD on the Pain location tab |
+| Dizzy, Breathe, Tired, Nauseous, Fever | Depend on motion or location, or are easily confused | The medic or SignAid asks ("Do you feel dizzy?"), the patient answers YES/NO |
+| Medications | One hand covers the other, which confuses hand tracking | Yes/no questions ("Did you take a medicine today?") |
+| Fingerspelling (A–Z) | Cut to fit the hackathon timeline | Questions that need a word (a name, a medicine) use Free mode; the medic can follow up in writing |
 | Deaf | Motion between ear and mouth | Shown automatically at start: "I'm Deaf, I'll answer with signs" |
 
 ### Recording rules
@@ -141,7 +119,7 @@ They're two-hand gestures, so they never clash with one-hand letters and numbers
 
 1. **Tracking (no code):** try each sign in the MediaPipe Studio hand landmarker demo. If the dots don't follow the fingers, or a hand disappears in a two-hand sign, replace the sign.
 2. **Classifier:** about 20 samples per sign from every teammate, then run `python scripts/evaluate.py` (see [Evaluating the classifier](#evaluating-the-classifier)). Target: about 90% correct per sign.
-3. **Live:** 10 tries per sign in the app, including people outside the team, different lighting, distance and sleeves. Weak signs at hour 16 become phrase board buttons.
+3. **Live:** 10 tries per sign in the app, including people outside the team, different lighting, distance and sleeves. Weak signs can still be answered with the tap-to-answer buttons.
 
 ## Project structure
 
@@ -278,7 +256,7 @@ A free key allows about 20 requests a minute; after that Gemini answers 429 and 
 Run it after changing a prompt, read the output against these rules, and commit `scripts/try_prompts_output.txt` with the change:
 
 - **Questions:** at most 15 words, no medical jargon, and a mode the patient can answer in.
-- **Answers:** first person, one short sentence, nothing the patient didn't sign, spelled words unchanged.
+- **Answers:** first person, one short sentence, nothing the patient didn't sign.
 - **Summary:** only facts the patient confirmed, never a diagnosis, "not asked" for anything missing.
 
 ## Recording samples
@@ -326,7 +304,7 @@ It tests each person against a classifier built from everyone else's samples, wh
 
 It also suggests a `MAX_DISTANCE` value from the real data. That needs samples from at least 2 people.
 
-What to do with weak signs: if two signs are mistaken for each other, re-record both and copy the reference video exactly. If one person scores much lower than the others, check their recordings. If a sign is still weak at hour 16, move it to the phrase board.
+What to do with weak signs: if two signs are mistaken for each other, re-record both and copy the reference video exactly. If one person scores much lower than the others, check their recordings. If a sign stays weak, the tap-to-answer buttons are the backup.
 
 ## Message formats
 

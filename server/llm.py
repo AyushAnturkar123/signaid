@@ -109,9 +109,8 @@ Go down this list and pick the first mode whose signs can give the answer:
 - "location": the question asks where the pain or hurt is. The patient answers with one of
   these signs: {_LOCATION_SIGNS}. For example "Where does it hurt?".
 - "free": the answer is one of these signs: {_FREE_SIGNS}. For example "What do you need?".
-  Also use it for statements that need no answer.
-- "spelling": the answer needs any other word, which the patient spells letter by letter:
-  a name, a medication, an allergy, or what happened.
+  Also use it for statements that need no answer, and for questions whose answer is a word the
+  patient can't sign (a name, a medication, an allergy): the patient can't spell words.
 
 Reply only with JSON: {{"text": "...", "mode": "..."}}"""
 
@@ -126,8 +125,6 @@ def _guess_mode(text):
         return "number"
     if re.search(r"\bwhere\b", lower) and re.search(r"\b(pain|hurt|hurts|ache)\b", lower):
         return "location"
-    if re.search(r"\b(name|spell|allergic to what|what medication|which medication)\b", lower):
-        return "spelling"
     if YESNO_START.match(lower.strip()):
         return "yesno"
     return "free"
@@ -157,8 +154,6 @@ How to read the signs depends on the answer mode:
   as a statement using only the question's own words: "Are you dizzy?" + NO is "I am not dizzy."
 - number: the number answers the medic's question. For a pain or scale question it is a level
   out of 10: "My pain is 8 out of 10."
-- spelling: the letters spell one word. Keep every letter in order and never correct the
-  spelling. Use the question to frame it: "What is your name?" + M A R I A is "My name is Maria."
 - free: each sign is a separate statement with exactly this meaning:
   PAIN = I have pain. HELP = I need help. WATER = I need water. FOOD = I need food.
   BATHROOM = I need the bathroom. COLD = I am cold. STOP = Please stop. PHONE = I need a phone.
@@ -175,8 +170,6 @@ Reply with the sentence only."""
 
 
 def _fallback_answer(signs, mode):
-    if mode == "spelling":
-        return "".join(signs)
     if mode == "number" and signs:
         return f"{signs[-1]} out of 10."
     if mode == "yesno" and signs:
@@ -326,14 +319,16 @@ question would fill in a missing detail about what the patient just said.
 Follow up on the patient's problem one detail at a time, for example:
 - pain: how bad it is (1 to 10), then "Where is the pain?" in "location" mode, then
   "Did it start suddenly?"
-- yes to having allergies: "What are you allergic to?"
-- yes to taking medication: "What medication do you take?"
+- yes to having allergies: "Is it a medicine allergy?"
+- yes to taking medication: "Did you take it today?"
 - HELP: "What do you need help with?"
 
 Rules:
 - Ask only about the patient's latest answer. Never repeat or rephrase a question that is already
   in the conversation, and never ask for a detail the patient already gave.
 - At most 12 words, plain everyday words.
+- The patient can't spell words, so only ask questions answerable with yes or no, a number,
+  a pain location, or one of the signs below. Never ask for a name or the name of a medicine.
 - Never diagnose, suggest a cause, give advice or tell anyone what to do.
 - Never ask whether the patient has other symptoms; the app asks that itself.
 - If nothing important is missing, or the latest answer leaves nothing to follow up on (such as
@@ -344,7 +339,6 @@ Choose how the patient can answer:
 - "number": the answer is a number from 1 to 10.
 - "location": where the pain is, one of these signs: {_LOCATION_SIGNS}.
 - "free": the answer is one of these signs: {_FREE_SIGNS}.
-- "spelling": the answer is any other word, spelled letter by letter.
 
 Reply only with JSON: {{"question": "...", "mode": "..."}} or {{"question": null, "mode": null}}"""
 

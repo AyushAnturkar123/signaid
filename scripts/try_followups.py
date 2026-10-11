@@ -39,16 +39,16 @@ SCENARIOS = [
      ["The pain is in my head.", "Yes.", "No."], "location"),
     ("Yes to allergies", [
         {"role": "medic", "text": "Any allergies?"}, {"role": "patient", "text": "Yes."}],
-     ["PENICILLIN"], "spelling"),
+     ["Yes."], "yesno"),
     ("Yes to medication", [
         {"role": "medic", "text": "Do you take any medication?"}, {"role": "patient", "text": "Yes."}],
-     ["INSULIN"], "spelling"),
+     ["Yes."], "yesno"),
     ("Patient signs HELP", [{"role": "patient", "text": "I need help."}],
      ["I have pain.", "My pain is 6 out of 10.", "The pain is in my legs."], "any"),
     ("No to a yes/no question", [
         {"role": "medic", "text": "Are you dizzy?"}, {"role": "patient", "text": "I am not dizzy."}],
      [], None),
-    ("Name spelled", [
+    ("Name given", [
         {"role": "medic", "text": "What is your name?"}, {"role": "patient", "text": "My name is Maria."}],
      [], None),
     ("Only the opening line", [], [], None),
@@ -68,7 +68,7 @@ def run(name, opening, answers, expected_mode):
         llm.last_call.update(task=None, result=None, seconds=None)
         result = llm.follow_up(log)
         call = dict(llm.last_call)
-        source = "pain rule, no Gemini call" if call["task"] is None else f"{call['result']}, {call['seconds']}s"
+        source = "fixed rule, no Gemini call" if call["task"] is None else f"{call['result']}, {call['seconds']}s"
         q, mode = result["question"], result["mode"]
         if step == 0:
             if expected_mode is None and q:

@@ -1,4 +1,4 @@
-Model: gemini-flash-lite-latest   Timeout: 10s   Key set: True
+Model: gemini-flash-lite-latest   Timeout: 5s   Key set: True
 
 ======================================================================
 simplify: 12 medic questions
@@ -6,51 +6,51 @@ simplify: 12 medic questions
 
 Medic:  Any allergies?
 Plain:  Any allergies?
-Mode:   yesno   [1.30s, Gemini]
+Mode:   yesno   [1.02s, Gemini]
 
 Medic:  Are you having trouble breathing?
 Plain:  Are you having trouble breathing?
-Mode:   yesno   [0.49s, Gemini]
+Mode:   yesno   [0.59s, Gemini]
 
 Medic:  Did you hit your head?
 Plain:  Did you hit your head?
-Mode:   yesno   [0.60s, Gemini]
+Mode:   yesno   [0.54s, Gemini]
 
 Medic:  Rate your pain 1 to 10
 Plain:  Rate your pain from 1 to 10.
-Mode:   number   [0.61s, Gemini]
+Mode:   number   [0.55s, Gemini]
 
 Medic:  On a scale of one to ten, how bad is the pain in your chest?
-Plain:  How bad is your chest pain from 1 to 10?
-Mode:   number   [0.42s, Gemini]
+Plain:  How bad is your pain from 1 to 10?
+Mode:   number   [0.51s, Gemini]
 
 Medic:  What is your name?
 Plain:  What is your name?
-Mode:   spelling   [0.52s, Gemini]
+Mode:   free   [0.47s, Gemini]
 
 Medic:  What medications are you currently taking?
-Plain:  What medicines do you take now?
-Mode:   spelling   [0.46s, Gemini]
+Plain:  What medicines are you taking?
+Mode:   free   [0.58s, Gemini]
 
 Medic:  What are you allergic to?
 Plain:  What are you allergic to?
-Mode:   spelling   [0.52s, Gemini]
+Mode:   free   [0.90s, Gemini]
 
 Medic:  Can you tell me what happened?
 Plain:  What happened?
-Mode:   spelling   [0.50s, Gemini]
+Mode:   free   [0.57s, Gemini]
 
 Medic:  Where does it hurt?
 Plain:  Where does it hurt?
-Mode:   spelling   [0.50s, Gemini]
+Mode:   location   [0.44s, Gemini]
 
 Medic:  Any dyspnea or syncope?
-Plain:  Are you having trouble breathing or did you faint?
-Mode:   yesno   [0.49s, Gemini]
+Plain:  Any trouble breathing or fainting?
+Mode:   yesno   [0.56s, Gemini]
 
 Medic:  Are you experiencing any paresthesia or radiating pain in your left upper extremity?
-Plain:  Do you have tingling or arm pain on your left side?
-Mode:   yesno   [0.71s, Gemini]
+Plain:  Do you feel tingling or arm pain on your left side?
+Mode:   yesno   [0.61s, Gemini]
 
 ======================================================================
 answer: 10 signed answers
@@ -62,39 +62,39 @@ Spoken: Yes.   [0.48s, Gemini]
 
 Asked:  Are you dizzy?
 Signs:  NO   (yesno mode)
-Spoken: I am not dizzy.   [0.54s, Gemini]
+Spoken: I am not dizzy.   [0.47s, Gemini]
 
 Asked:  Do you take any medication?
 Signs:  YES   (yesno mode)
-Spoken: Yes.   [0.53s, Gemini]
+Spoken: Yes.   [0.50s, Gemini]
 
 Asked:  Rate your pain 1 to 10
 Signs:  8   (number mode)
-Spoken: My pain is 8 out of 10.   [0.55s, Gemini]
+Spoken: My pain is 8 out of 10.   [0.63s, Gemini]
 
 Asked:  How bad is the pain now?
 Signs:  3   (number mode)
-Spoken: My pain is 3 out of 10.   [0.41s, Gemini]
+Spoken: My pain is 3 out of 10.   [0.53s, Gemini]
 
-Asked:  What are you allergic to?
-Signs:  P E N I C I L L I N   (spelling mode)
-Spoken: I am allergic to penicillin.   [0.50s, Gemini]
+Asked:  Where does it hurt?
+Signs:  CHEST   (location mode)
+Spoken: The pain is in my chest.   [0.51s, Gemini]
 
-Asked:  What is your name?
-Signs:  M A R I A   (spelling mode)
-Spoken: My name is Maria.   [0.58s, Gemini]
+Asked:  Where is the pain?
+Signs:  HEAD LEGS   (location mode)
+Spoken: The pain is in my head and my legs.   [0.61s, Gemini]
 
 Asked:  What do you need?
 Signs:  PAIN WATER   (free mode)
-Spoken: I have pain and I need water.   [0.48s, Gemini]
+Spoken: I have pain and I need water.   [0.60s, Gemini]
 
 Asked:  How are you feeling?
 Signs:  COLD   (free mode)
-Spoken: I am cold.   [0.37s, Gemini]
+Spoken: I am cold.   [0.55s, Gemini]
 
 Asked:  (nothing, the patient starts)
 Signs:  HELP BATHROOM   (free mode)
-Spoken: I need help and I need the bathroom.   [0.54s, Gemini]
+Spoken: I need help and I need the bathroom.   [0.55s, Gemini]
 
 ======================================================================
 summary: 3 conversations
@@ -111,7 +111,7 @@ summary: 3 conversations
   MEDIC: Do you take any medication?
   PATIENT: No.
 
-Handoff note   [0.71s, Gemini]
+Handoff note   [0.92s, Gemini]
   | Patient is Deaf and needs an ASL interpreter.
   | 
   | Needs attention (the patient's own answers, not a diagnosis):
@@ -130,15 +130,15 @@ Handoff note   [0.71s, Gemini]
   PATIENT: I'm Deaf. Please speak to me, and I'll answer with signs.
   MEDIC: Do you have any allergies?
   PATIENT: Yes.
-  MEDIC: What are you allergic to?
-  PATIENT: PENICILLIN
+  MEDIC: Are you allergic to penicillin?
+  PATIENT: Yes.
   MEDIC: Did you take penicillin today?
   PATIENT: Yes.
   MEDIC: Is it hard to breathe?
   PATIENT: No.
   MEDIC: What do you need right now?
 
-Handoff note   [0.58s, Gemini]
+Handoff note   [0.81s, Gemini]
   | Patient is Deaf and needs an ASL interpreter.
   | 
   | Needs attention (the patient's own answers, not a diagnosis):
@@ -149,7 +149,7 @@ Handoff note   [0.58s, Gemini]
   | Pain level: not asked
   | Pain location: not asked
   | Allergies: penicillin
-  | Medications: took penicillin today
+  | Medications: penicillin today
   | Other answers:
   | - denies trouble breathing
 
@@ -165,13 +165,13 @@ Handoff note   [0.58s, Gemini]
   PATIENT: No.
   PATIENT: Cold water
 
-Handoff note   [0.76s, Gemini]
+Handoff note   [0.78s, Gemini]
   | Patient is Deaf and needs an ASL interpreter.
   | 
   | Needs attention (the patient's own answers, not a diagnosis):
-  | - Flagged for attention: fell with head hit
+  | - Flagged for attention: fall with head injury
   | 
-  | Chief complaint: fell
+  | Chief complaint: Fall
   | Pain level: 6 out of 10
   | Pain location: not asked
   | Allergies: not asked
@@ -179,7 +179,6 @@ Handoff note   [0.76s, Gemini]
   | Other answers:
   | - hit head
   | - denies dizziness
-  | - cold water
 
 ======================================================================
 Totals

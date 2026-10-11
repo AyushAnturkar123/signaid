@@ -53,7 +53,7 @@ def test_health_reports_gemini_and_samples(client):
 def test_modes(client):
     modes = client.get("/api/modes").json()
     assert modes["yesno"] == ["YES", "NO"]
-    assert set(modes) == {"yesno", "number", "spelling", "free", "location"}
+    assert set(modes) == {"yesno", "number", "free", "location"}
     assert modes["location"] == ["CHEST", "HEAD", "LEGS"]
 
 

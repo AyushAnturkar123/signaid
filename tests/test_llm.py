@@ -17,8 +17,8 @@ from server import llm
     ("On a scale of 1 to 10, how bad is the pain?", "number"),
     ("How much pain are you in?", "number"),
     ("Rate your pain", "number"),
-    ("What is your name?", "spelling"),
-    ("Which medication do you take?", "spelling"),
+    ("What is your name?", "free"),  # no spelling mode: the patient can't spell words
+    ("Which medication do you take?", "free"),
     ("Tell me what happened", "free"),
 ])
 def test_guess_mode(text, mode):
@@ -33,7 +33,6 @@ def test_simplify_without_key_passes_text_through():
     (["YES"], "yesno", "Yes."),
     (["NO"], "yesno", "No."),
     (["8"], "number", "8 out of 10."),
-    (["P", "E", "N"], "spelling", "PEN"),
     (["PAIN", "HELP"], "free", "Pain help"),
 ])
 def test_answer_fallback(signs, mode, expected):
@@ -442,3 +441,11 @@ def test_medic_question_takes_over_from_the_opening(monkeypatch):
     fake_gemini(monkeypatch, '{"question": null, "mode": null}')
     log = [INTRO, turn("signaid", llm.OPENING_QUESTION), turn("medic", "Are you dizzy?"), turn("patient", "No.")]
     assert llm.follow_up(log) == llm.NO_FOLLOW_UP
+
+
+
+def test_no_spelling_mode_anywhere():
+    assert "spelling" not in llm.MODES
+    for prompt in (llm.SIMPLIFY_SYSTEM, llm.ANSWER_SYSTEM, llm.FOLLOW_UP_SYSTEM):
+        assert "spelling" not in prompt
+    assert "can't spell" in llm.FOLLOW_UP_SYSTEM

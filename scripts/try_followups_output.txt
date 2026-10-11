@@ -2,77 +2,79 @@ Model: gemini-flash-lite-latest   App timeout: 5.0s
 
 == Patient signs PAIN
    Patient: I have pain.
-   SignAid asks [number]: How bad is your pain, 1 to 10?  [pain rule, no Gemini call]
+   SignAid asks [number]: How bad is your pain, 1 to 10?  [fixed rule, no Gemini call]
    Patient: My pain is 8 out of 10.
-   SignAid asks [location]: Where is the pain?  [pain rule, no Gemini call]
+   SignAid asks [location]: Where is the pain?  [fixed rule, no Gemini call]
    Patient: The pain is in my chest.
-   SignAid asks [yesno]: Did the pain start suddenly?  [ok, 1.1s]
+   SignAid asks [yesno]: Did it start suddenly?  [ok, 1.01s]
    Patient: Yes.
-   (stops)  [pain rule, no Gemini call]
+   SignAid asks [yesno]: Do you have any other symptoms?  [fixed rule, no Gemini call]
    ok
 
 == Pain with level already given -> Pain location tab
    Medic: How bad is your pain, 1 to 10?
    Patient: My pain is 7 out of 10.
-   SignAid asks [location]: Where is the pain?  [pain rule, no Gemini call]
+   SignAid asks [location]: Where is the pain?  [fixed rule, no Gemini call]
    Patient: The pain is in my head.
-   SignAid asks [yesno]: Did it start suddenly?  [ok, 0.67s]
+   SignAid asks [yesno]: Did it start suddenly?  [ok, 0.54s]
    Patient: Yes.
-   (stops)  [ok, 0.55s]
+   SignAid asks [yesno]: Do you have any other symptoms?  [ok, 0.49s]
+   Patient: No.
+   (stops)  [fixed rule, no Gemini call]
    ok
 
 == Yes to allergies
    Medic: Any allergies?
    Patient: Yes.
-   SignAid asks [spelling]: What are you allergic to?  [ok, 0.55s]
-   Patient: PENICILLIN
-   (stops)  [ok, 0.54s]
+   SignAid asks [yesno]: Is it a medicine allergy?  [ok, 0.69s]
+   Patient: Yes.
+   SignAid asks [yesno]: Do you have any other symptoms?  [ok, 0.82s]
    ok
 
 == Yes to medication
    Medic: Do you take any medication?
    Patient: Yes.
-   SignAid asks [spelling]: What medication do you take?  [ok, 0.4s]
-   Patient: INSULIN
-   (stops)  [ok, 0.62s]
+   SignAid asks [yesno]: Did you take it today?  [ok, 0.75s]
+   Patient: Yes.
+   SignAid asks [yesno]: Do you have any other symptoms?  [ok, 0.4s]
    ok
 
 == Patient signs HELP
    Patient: I need help.
-   SignAid asks [free]: What do you need help with?  [ok, 0.51s]
+   SignAid asks [free]: What do you need help with?  [ok, 0.47s]
    Patient: I have pain.
-   SignAid asks [number]: How bad is your pain, 1 to 10?  [pain rule, no Gemini call]
+   SignAid asks [number]: How bad is your pain, 1 to 10?  [fixed rule, no Gemini call]
    Patient: My pain is 6 out of 10.
-   SignAid asks [location]: Where is the pain?  [pain rule, no Gemini call]
+   SignAid asks [location]: Where is the pain?  [fixed rule, no Gemini call]
    Patient: The pain is in my legs.
-   (stops)  [pain rule, no Gemini call]
+   SignAid asks [yesno]: Do you have any other symptoms?  [fixed rule, no Gemini call]
    ok
 
 == No to a yes/no question
    Medic: Are you dizzy?
    Patient: I am not dizzy.
-   (stops)  [ok, 0.61s]
-   ok
-
-== Name spelled
-   Medic: What is your name?
-   Patient: My name is Maria.
    (stops)  [ok, 0.6s]
    ok
 
+== Name given
+   Medic: What is your name?
+   Patient: My name is Maria.
+   (stops)  [ok, 0.37s]
+   ok
+
 == Only the opening line
-   (stops)  [ok, 0.5s]
+   (stops)  [ok, 0.73s]
    ok
 
 == Pain and water together
    Patient: I have pain and I need water.
-   SignAid asks [number]: How bad is your pain, 1 to 10?  [pain rule, no Gemini call]
+   SignAid asks [number]: How bad is your pain, 1 to 10?  [fixed rule, no Gemini call]
    Patient: My pain is 9 out of 10.
-   SignAid asks [location]: Where is the pain?  [pain rule, no Gemini call]
+   SignAid asks [location]: Where is the pain?  [fixed rule, no Gemini call]
    Patient: The pain is in my chest.
-   SignAid asks [yesno]: Did it start suddenly?  [ok, 0.73s]
+   SignAid asks [yesno]: Did it start suddenly?  [ok, 0.43s]
    Patient: No.
-   (stops)  [pain rule, no Gemini call]
+   SignAid asks [yesno]: Do you have any other symptoms?  [fixed rule, no Gemini call]
    ok
 
 9/9 scenarios passed every check.

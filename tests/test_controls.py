@@ -79,7 +79,7 @@ def test_controls_route(client):
 
 def test_modes_route_has_no_controls(client):
     modes = client.get("/api/modes").json()
-    assert set(modes) == {"yesno", "number", "spelling", "free", "location"}
+    assert set(modes) == {"yesno", "number", "free", "location"}
     assert not any(c in labels for labels in modes.values() for c in CONTROLS)
 
 
@@ -93,7 +93,7 @@ def test_websocket_sends_control_in_any_mode(client, monkeypatch):
     clock = iter(i * 0.1 for i in range(1, 100))
     monkeypatch.setattr(main, "monotonic", lambda: next(clock))
     client.post("/api/samples", json={"label": "CLEAR", "signer": "Alice", "frames": [two_hands(40)] * 5})
-    frame = {"type": "landmarks", "mode": "spelling", "hands": two_hands(40)}
+    frame = {"type": "landmarks", "mode": "location", "hands": two_hands(40)}
     with client.websocket_connect("/ws/signs") as ws:
         # Frames 1-10 cover 0.9 s of holding: predictions only.
         for _ in range(10):

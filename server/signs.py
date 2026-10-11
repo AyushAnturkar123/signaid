@@ -4,7 +4,6 @@ MODES = {
     "yesno": ["YES", "NO"],
     "number": [str(n) for n in range(1, 11)],
     # J and Z need motion, so they are typed on the on-screen keyboard instead.
-    "spelling": list("ABCDEFGHIKLMNOPQRSTUVWXY"),
     # YES and NO are here too, so the patient can answer yes or no at any time.
     "free": ["YES", "NO", "PAIN", "HELP", "WATER", "FOOD", "BATHROOM", "COLD", "STOP", "PHONE"],
     # Where the pain is. Two-hand gestures made up for SignAid, not ASL signs.
@@ -12,7 +11,7 @@ MODES = {
 }
 
 # Control signs work in every mode, so the patient can run the app without touching it.
-# They're two-hand gestures, so they never clash with one-hand letters and numbers.
+# They're two-hand gestures, so they never clash with the one-hand signs and numbers.
 # Kept out of MODES, which drives the frontend's tabs and tap-to-answer buttons.
 CONTROLS = ["DONE", "CLEAR", "DELETE"]
 

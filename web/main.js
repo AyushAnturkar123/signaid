@@ -14,7 +14,7 @@ import { setupPhone } from "./ui/phone.js";
 
 const $ = (id) => document.getElementById(id);
 const SEND_INTERVAL_MS = 66; // ~15 frames a second to the classifier
-const MODE_NAMES = { yesno: "Yes / No", number: "Number", spelling: "Spelling", free: "Free", location: "Pain location" };
+const MODE_NAMES = { yesno: "Yes / No", number: "Number", free: "Free", location: "Pain location" };
 const INTRO = "I'm Deaf. Please speak to me, and I'll answer with signs.";
 
 // scanning: recognition is on. It starts off, so testing or setting up never adds signs by accident.
@@ -24,7 +24,7 @@ let lastSent = 0;
 let recorder = { isLeftHanded: () => false };
 
 function answerText() {
-  return state.mode === "spelling" ? state.answer.join("") : state.answer.join(" ");
+  return state.answer.join(" ");
 }
 
 function setMode(mode) {
