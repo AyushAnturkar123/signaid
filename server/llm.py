@@ -20,6 +20,14 @@ log = logging.getLogger("signaid.llm")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 # A demo can't wait on a slow network: after this many seconds, use the fallback.
 TIMEOUT_SECONDS = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "5"))
+# Gemini rejects any request deadline under 10 s ("Minimum allowed deadline is 10s"), so the
+# HTTP request itself always gets at least that. The app still stops waiting after
+# TIMEOUT_SECONDS (see _gemini) and uses the fallback, so a slow call never freezes the demo.
+MIN_HTTP_TIMEOUT_SECONDS = 10
+
+
+def _http_timeout_ms():
+    return int(max(TIMEOUT_SECONDS, MIN_HTTP_TIMEOUT_SECONDS) * 1000)
 
 _client = None
 _pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="gemini")
@@ -40,7 +48,7 @@ def _call(key, system, prompt, json_output):
     if _client is None:
         # The HTTP timeout stops the request itself; the deadline in _gemini
         # guarantees the app stops waiting even if the request hangs in a retry or DNS.
-        _client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=int(TIMEOUT_SECONDS * 1000)))
+        _client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=_http_timeout_ms()))
     config = types.GenerateContentConfig(
         system_instruction=system,
         temperature=0.2,

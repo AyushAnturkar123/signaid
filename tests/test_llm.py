@@ -225,3 +225,11 @@ def test_successful_call_is_timed_and_logged(monkeypatch, fake_key, caplog):
 def test_no_key_is_recorded():
     llm.answer(["YES"], "yesno")
     assert llm.last_call["result"] == "no key"
+
+
+def test_http_deadline_meets_geminis_minimum(monkeypatch):
+    # Gemini rejects deadlines under 10 s, which made every call fail with the 5 s app limit.
+    monkeypatch.setattr(llm, "TIMEOUT_SECONDS", 5)
+    assert llm._http_timeout_ms() == 10_000
+    monkeypatch.setattr(llm, "TIMEOUT_SECONDS", 15)
+    assert llm._http_timeout_ms() == 15_000
